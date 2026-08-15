@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sol-engine"
-version = "0.1.0.dev0"
-description = "Composable video-generation optimization engine with Diffusers semantics and high-performance backends"
+version = "0.2.0.dev0"
+description = "Adaptation-first engine for optimized generative-model releases"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -13,7 +13,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-runtime = ["torch>=2.6"]
 test = []
 
 [project.scripts]
@@ -24,5 +23,4 @@ sol-engine = "sol.cli:main"
 include = ["sol*"]
 
 [tool.setuptools.package-data]
-sol = ["catalog.toml"]
-"sol.plugins.ltx23" = ["*.toml", "presets/*.toml", "launch/*.toml"]
+"*" = ["plugin.toml", "presets/*.toml"]

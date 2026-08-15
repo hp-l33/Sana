@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sol Model Adaptation"
+  short_description: "Adapt and release optimized models through Sol"
+  default_prompt: "Use $sol-adapt-model to adapt a model into a validated Sol release preset."

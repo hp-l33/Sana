@@ -1,4 +1,4 @@
-name: Sol-Engine control plane
+name: Sol Engine control plane
 
 on:
   push:
@@ -17,13 +17,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install control plane
+      - name: Install Engine
         run: python -m pip install -e .
       - name: Compile
-        run: python -m compileall -q sol_engine techniques tests/control_plane
+        run: python -m compileall -q sol tests
       - name: Contract tests
-        run: python -m unittest discover -s tests/control_plane -v
-      - name: Metadata doctor
-        run: sol-engine doctor
-      - name: Resolve LTX-2.3 release recipe
-        run: sol-engine plan recipes/ltx23/fullopt.toml --json > /tmp/ltx23-plan.json
+        run: python -m unittest discover -s tests -v
+      - name: Blank-slate health
+        run: |
+          sol doctor --json
+          test "$(sol models --json)" = "[]"
+      - name: Check whitespace
+        run: git diff --check

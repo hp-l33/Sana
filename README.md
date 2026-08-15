@@ -1,239 +1,194 @@
-<p align="center">
-  <img src="assets/sol-engine-logo.png" width="42%" alt="Sol-Engine logo"/>
-</p>
+# Sol Engine
 
-<h3 align="center">Composable acceleration for video generation</h3>
+Sol is an adaptation-first engine for producing and running optimized generative-model releases. The repository is intentionally a **blank slate**: it ships no model, optimization implementation, historical experiment, or benchmark claim yet.
 
-<p align="center">
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/docs/">Documentation</a> ·
-  <a href="site_docs/architecture.md">Architecture</a> ·
-  <a href="site_docs/agent-workflow.md">Model adaptation</a> ·
-  <a href="https://arxiv.org/abs/2606.23743">Paper</a>
-</p>
+That emptiness is a product constraint, not missing cleanup. A model enters Sol only after one vertical plugin owns its semantics, performance backend, target-specific optimization space, evidence, and released presets.
 
-Sol is an inference optimization engine with one product contract:
+## One surface, three users
 
-- ordinary users run a released model preset with one command;
-- advanced users compose only the optimizations integrated for that model;
-- maintainers and agents adapt a model through the same model plugin, search
-  space, preset, and acceptance gate that users consume.
+- An ordinary user runs an already optimized model with one released preset.
+- An advanced user inspects the plan and target-specific search space, then changes a small model-owned configuration.
+- A maintainer or agent produces that release through the same plugin and Engine contract.
 
-The public surface is deliberately small: `Engine`, `ModelPlugin`, `BackendAdapter`,
-`Optimization`, `Preset`, and `Run`. There is no import-time registration and no
-second agent-only orchestration framework hidden beside the product.
+The production and release loops therefore improve each other: modularity that makes a release easy to use also reduces an agent's working domain from arbitrary model/architecture/backend code to verified seams, technique integration, and bounded tuning.
 
-> This branch is an experimental architecture migration. `ltx23:fullopt` is the
-> first preset migrated end to end. Other catalog entries are marked
-> `profile_only` until they have a backend adapter, preset, and acceptance
-> contract; they are not presented as plug-and-play releases.
+## Current state
 
-## Start here
+Install the dependency-light control plane:
 
 ```bash
-python3 -m pip install --upgrade "pip>=24" "setuptools>=69"
 python3 -m pip install -e .
-
-# Discovery is side-effect free: no model or optimization provider is imported.
+sol doctor
 sol models
-sol presets
-
-# Resolve and validate the released stack without launching a GPU process.
-sol inspect ltx23:fullopt --json
-sol run ltx23:fullopt --dry-run
-
-# Run after installing the runtime and weights described in QUICKSTART.md.
-sol run ltx23:fullopt \
-  --set SGLANG_RUNTIME_ROOT=/path/to/sglang-runtime
 ```
 
-`inspect` resolves exact providers, validates model capabilities and composition
-conflicts, compiles the preset for the selected backend, and emits a deterministic
-fingerprint. `--dry-run` performs the same work without creating a `runs/`
-directory, writing a record, or launching a process.
+The expected output today is a healthy Engine with zero model plugins. Sol does not pretend that a historical config is a supported release. `sol models` shows releases; maintainers may use `sol models --all` to include drafts.
 
-Use `sol models --json` and `sol space ...` when the caller is an agent or another
-tool:
+After a plugin is accepted, the user surface is:
 
 ```bash
-sol models --json
-sol space ltx23 --backend sglang
+sol inspect MODEL --preset PRESET --target TARGET
+sol run MODEL --preset PRESET --target TARGET -- --prompt "..."
 ```
 
-The model list distinguishes `released` from `profile_only`. The tuning space
-contains only optimizations that both satisfy the model capabilities and have a
-real mapping in the selected backend.
+`inspect` resolves the exact command, environment, backend, target, and metadata without running a model. `run` executes that same validated plan without a shell.
 
-## Customize in a few lines
+## What Sol is based on
 
-The Python API is the shared surface for advanced users and adaptation agents:
+Sol is not a third model zoo and does not choose one framework as the universal source of truth:
+
+```mermaid
+flowchart LR
+    R["Semantic reference"] --> P["Self-owned model plugin"]
+    B["Performance backend"] --> P
+    T["Target + topology"] --> P
+    P --> S["Legal technique space"]
+    S --> E["Measured release preset"]
+    E --> U["User or agent via Sol Engine"]
+```
+
+- Prefer a maintained semantic reference such as Diffusers when it supports the model. It defines preprocessing, scheduling, components, and correctness.
+- Use a performance backend such as SGLang when it supports the model and target. It owns runtime, distributed execution, and optimized kernels.
+- Let the model plugin connect those two worlds and explicitly reject gaps. Sol owns the contract, target, composition, evidence, and release—not another complete architecture implementation.
+
+Neither Diffusers nor SGLang is mandatory by name. A model may use another maintained reference or backend, but it must preserve the same boundaries and evidence contract.
+
+## Architecture
+
+There is no central model catalog and no import-for-registration. Discovery scans self-owned `plugin.toml` files as data and imports one provider only after the caller selects it.
+
+```text
+sol/
+├── contracts.py       # ModelPlugin and ExecutionPlan contracts
+├── discovery.py       # lazy, collision-safe manifest discovery
+├── engine.py          # inspectable search/run surface
+├── adaptation.py      # durable production state machine
+├── scaffold.py        # model-owned vertical-slice generator
+└── plugins/           # deliberately empty until a model is adapted
+
+.agents/skills/sol-adapt-model/
+├── SKILL.md           # agent entry point
+└── references/        # workflow, evidence, tuning, retired-prototype lessons
+```
+
+A future model is cohesive rather than scattered:
+
+```text
+sol/plugins/<model>/
+├── plugin.toml        # id, provider, lifecycle status, supported surfaces
+├── plugin.py          # reference/backend/target/preset/space/plan ownership
+└── presets/           # optional larger target-specific release data
+```
+
+The manifest is the model's sole discovery identity. There is no second row in a global registry to keep synchronized.
+
+## Model production with an agent
+
+Start one durable adaptation:
+
+```bash
+sol adapt start minimax_h3 \
+  --reference diffusers \
+  --backend sglang \
+  --target h100_sxm_80gb_x4 \
+  --budget 40
+```
+
+Then an agent repeatedly asks the Engine for one bounded task:
+
+```bash
+sol adapt next RUN_ID --json
+sol adapt scaffold RUN_ID
+sol adapt submit RUN_ID --evidence evidence.json
+```
+
+The lifecycle is:
+
+```text
+scope -> scaffold -> reference -> dense backend -> seams -> search space
+      -> tune -> accept -> release candidate -> human approval -> released
+```
+
+State and accepted evidence live under `${SOL_STATE_HOME:-${XDG_STATE_HOME:-~/.local/state}/sol}/adaptations/`, outside Git. Each `next` response declares the current task, allowed repository paths, acceptance criteria, and required evidence. `submit` advances exactly one stage and fails closed on malformed, missing, over-budget, or out-of-scope evidence.
+
+Invoke the repository-local `$sol-adapt-model` skill once to let a compatible coding agent follow this loop. The skill does not encode a second workflow: it calls `sol adapt`, reads its task contract, and stops at blockers or `awaiting_approval`. A maintainer completes the gate explicitly:
+
+```bash
+sol adapt approve RUN_ID --by MAINTAINER
+```
+
+Approval changes the model manifest from `draft` to `released`. It does not push, publish, or deploy anything.
+
+## Customization and search
+
+Search is a policy over a plugin's executable space, not a permanent top-level subsystem:
+
+```bash
+sol space MODEL --backend BACKEND --target TARGET
+```
+
+The returned dimensions are legal only for that model, backend, and target. An advanced user or any search agent can sweep them, but the Engine schema does not depend on a particular tuner. Engine validates names, types, ranges, and categorical values; the plugin validates cross-option constraints. A winning candidate becomes a named model-owned preset only after acceptance.
+
+Use the same plan surface for a one-off customization:
+
+```bash
+sol inspect MODEL --preset PRESET --target TARGET \
+  --set cache.threshold=0.25 \
+  --set sparse.density=0.10
+```
+
+Overrides make a candidate, not a new released preset. The resolved values are recorded in `ExecutionPlan.options`, so they cannot be silently ignored.
+
+In Python:
 
 ```python
 from sol import Engine
 
 engine = Engine()
-
-# Machine-readable, capability- and backend-filtered domain.
-space = engine.space("ltx23", backend="sglang")
-
-# Model-owned stages are filled in automatically; callers tune only options.
-candidate = (
-    engine.optimize("ltx23", backend="sglang")
-    .use("step_cache", skip="16-28")
-    .use(
-        "token_prune",
-        keep_ratio=0.5,
-        method="feat_norm",
-        compensation="prev",
-        steps="1-2",
-    )
-    .preset(name="cache-prune")
+space = engine.search_space("MODEL", backend="BACKEND", target="TARGET")
+plan = engine.inspect(
+    "MODEL",
+    preset="PRESET",
+    target="TARGET",
+    options={"cache.threshold": 0.25},
 )
-
-plan = engine.inspect(candidate)
-run = engine.run(candidate, dry_run=True)
 ```
 
-The caller cannot invent an installation stage, select an unintegrated
-optimization, or silently pass a parameter the backend ignores. Those are model
-plugin responsibilities and fail before launch.
+Optimization components are not globally registered merely because code exists. A model plugin exposes only components whose insertion points, guards, backend mapping, target support, and engagement checks have been verified.
 
-## What the engine is based on
+## Why the old directories are gone
 
-Sol does not maintain a third complete implementation of every model architecture.
-It separates semantic ownership from optimized execution:
+- There is no `recipes/`: a released composition is a model-owned preset.
+- There is no checked-in `runs/`: runtime and adaptation artifacts are external state.
+- There is no global `search/` or `search_space/`: the plugin derives a bounded space for the selected backend and target.
+- There is no permanent `evals/`: evaluation evidence is required by the adaptation stage and stored with that run; reusable evaluators should become ordinary packages only when more than one plugin needs them.
+- There is no `techniques/` tree detached from models: reusable implementations may be introduced later behind a verified plugin seam, but unintegrated technique inventory is not product capability.
 
-```mermaid
-flowchart LR
-    U["User or agent"] --> E["Sol Engine"]
-    E --> C["ModelPlugin contract"]
-    C --> D["Diffusers semantic reference"]
-    C --> S["SGLang performance backend"]
-    E --> O["Composable optimizations"]
-    O --> S
-    C --> P["Released preset + acceptance gate"]
-```
+The retired prototype's reusable lessons were distilled into [the agent playbook](.agents/skills/sol-adapt-model/references/legacy-model-lessons.md). Its old thresholds and timings are search priors, never release claims.
 
-- **Diffusers is the semantic reference** for model components, configuration,
-  preprocessing/postprocessing, and a widely understood correctness baseline.
-- **SGLang is the high-performance execution backend** where an integrated model
-  benefits from optimized scheduling, distributed execution, and kernels.
-- **Sol owns the optimization contract and adapters**, not another forked model
-  zoo. A model may add another backend later without changing the user-facing
-  preset or optimization API.
+## Release bar
 
-For performance claims, compare an optimized backend with a dense baseline on the
-same backend and topology. Use the Diffusers reference to check semantic drift;
-do not confuse a cross-framework latency comparison with optimization speedup.
+A model is releasable only when it has:
 
-## The production ↔ release loop
+- a pinned semantic reference and deterministic artifacts;
+- a dense performance-backend parity result;
+- explicit optimization seams and dense fallbacks;
+- a bounded space tied to hardware and distributed topology;
+- raw same-topology baseline/candidate samples and technique engagement proof;
+- a passing quality gate and interaction matrix;
+- a replayable, inspectable named preset;
+- passing repository checks and attributable maintainer approval.
 
-The plugin boundary is also the adaptation boundary. This is how engine capability
-is decoupled from agent capability:
+## Development
 
-```mermaid
-flowchart LR
-    A["Adapt model seams"] --> B["Engine.space(model, backend)"]
-    B --> C["Compose and tune optimizations"]
-    C --> D["Benchmark + acceptance gate"]
-    D --> E["Publish model-owned preset"]
-    E --> F["User runs the same preset"]
-    F --> B
-```
-
-An agent does not search over arbitrary model code, architecture code, and all
-optimization implementations at once. Maintainers first encode the model seams and
-backend mappings in a `ModelPlugin`. The engine then derives the legal domain. The
-agent searches only optimization composition and parameters, and its winning
-candidate is serialized as the same `Preset` users run.
-
-There is intentionally no top-level `search/` framework. Search is a replaceable
-policy over `Engine.space()`; it does not own another schema, registry, or release
-format.
-
-## Repository map
-
-```text
-sol/
-  engine.py                 one public facade
-  plugin.py                 model integration contract
-  backend.py                execution-backend contract
-  optimization.py           public optimization protocol
-  preset.py                 model-owned release format
-  plugins/
-    ltx23/
-      profile.toml          semantics and verified seams
-      references/           Diffusers semantic reference
-      backends/             SGLang execution mapping
-      presets/              user-facing optimization stacks
-      acceptance.toml       release gate
-      launch/               backend launch manifests
-  optimizations/            reusable methods, transforms, and kernels
-  _internal/                legacy laboratory bridge, never public API
-
-models/                     upstream/runtime snapshots and historical profiles
-benchmarks/                 evaluation contracts, rubrics, and golden evidence
-experiments/                unpublished laboratory manifests
-site_docs/                  concepts and adaptation guides
-tests/                      control-plane contract tests
-```
-
-Directory names reflect lifecycle rather than implementation accidents:
-
-- `sol/plugins/<model>/presets/` contains released, model-owned stacks. There is
-  no global `recipes/` directory that duplicates model and provider identity.
-- `benchmarks/` defines how a candidate is judged; it is not a second runtime.
-- `experiments/` contains lab inputs and may be unstable. A successful experiment
-  becomes a preset only after the acceptance gate passes.
-- `runs/` is local generated output and is ignored by Git. The engine defaults to
-  `${XDG_STATE_HOME:-~/.local/state}/sol/runs` and writes only during an actual run
-  or an explicit `Run.save()`.
-- Optimization search guides live under documentation. The executable search
-  domain is derived from the model/backend contract.
-
-## Adding a model
-
-A complete model release is one cohesive plugin, not edits scattered across a
-global registry, recipe tree, eval tree, and launcher switch:
-
-1. Add `sol/plugins/<model>/profile.toml` and encode only verified model seams.
-2. Add a semantic reference under `references/` and an executable adapter under
-   `backends/`.
-3. Map each supported optimization to concrete model stages in the adapter.
-4. Ask `Engine.space()` for the legal tuning domain; tune candidates through
-   `Engine.optimize()`.
-5. Record the benchmark and fail-closed quality/performance requirements in
-   `acceptance.toml`.
-6. Publish the accepted candidate under `presets/` and add its discovery metadata
-   to `sol/catalog.toml`.
-
-See [the full agent workflow](site_docs/agent-workflow.md) for the file contract
-and promotion checklist.
-
-## Optimization library
-
-The current reusable library covers caching, token pruning, sparse attention,
-NVFP4 FFNs, and kernel fusion. Implementations are lazy-loaded from canonical
-`module:qualname` references; short names such as `step_cache` are serialization
-aliases, not decorators or process-global registry state.
-
-Sol-Attn and its architecture-specific kernels live at
-[`sol/optimizations/sparse_backends/`](sol/optimizations/sparse_backends/).
-
-## Verification
-
-CPU-only control-plane tests do not import PyTorch or allocate a GPU:
+The control plane has no GPU dependency:
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 \
-  python3 -m unittest discover -s tests/control_plane -v
+  python3 -m unittest discover -s tests -v
+python3 -m compileall -q sol tests
+sol doctor
+git diff --check
 ```
 
-`sol doctor` validates every released preset and acceptance contract. GPU
-benchmarks remain model/backend-specific and are required before promotion, not
-for catalog discovery or plan inspection.
-
-## License
-
-Code in this repository is Apache-2.0. Model weights and vendored upstream code
-retain their respective licenses; consult the relevant model and third-party
-notices.
+GPU dependencies belong to the selected model/backend integration and must not be imported during discovery.

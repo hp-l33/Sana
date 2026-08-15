@@ -1,83 +1,52 @@
 # Agent contract
 
-This repository uses agents to adapt and tune models through the product architecture,
-not through unbounded repository-wide patching.
+Use the repository-local `sol-adapt-model` skill for model adaptation, optimization, acceptance, or release work. The Engine state machine is authoritative.
 
-## Objective
+## Start
 
-For a model adaptation, reduce the working domain to:
+For a new model:
 
-```text
-verified model seams + backend mappings
-    -> Engine.space(model, backend)
-    -> optimization composition and tuning
-    -> acceptance
-    -> model-owned released preset
+```bash
+sol adapt start MODEL --reference REFERENCE --backend BACKEND --target TARGET --budget RUNS
 ```
 
-The resulting preset must be the same entry point documented for users.
+For existing work:
 
-## Architecture rules
+```bash
+sol adapt status RUN_ID --json
+sol adapt next RUN_ID --json
+```
 
-- Public code lives under the single `sol` namespace.
-- `Engine` is the public facade. Do not add another CLI or agent-only API.
-- A complete model integration lives under `sol/plugins/<model>/` and owns its
-  profile, backends, presets, launch metadata, and acceptance contract.
-- Diffusers is the preferred semantic reference; SGLang is the preferred performance
-  backend. Do not introduce a third full model/architecture implementation in `sol`.
-- Reusable methods, transforms, and kernels live under `sol/optimizations/` and must not
-  import the engine, catalog, or model plugins.
-- No registration decorators or import-for-registration. Discovery uses lazy canonical
-  `module:qualname` references in `sol/catalog.toml`.
-- Do not create global `recipes/`, `search/`, or `search_space/` schemas. A release
-  composition is a model-owned preset; a tuning domain is derived by `Engine.space()`;
-  search is an interchangeable policy over that API.
-- Model installation stages belong to the backend adapter. A caller or search agent
-  tunes options only.
-- Unknown options, missing capabilities, unsupported stages, and catalog collisions
-  fail closed.
+Complete only the returned task, touch only `allowed_paths`, provide every `required_evidence` key, submit once, and ask for the next task again. Do not infer or skip lifecycle stages.
 
-## Adaptation order
+## Architecture invariants
 
-1. Freeze official semantic settings and reference artifacts.
-2. Inspect and encode only verified model seams in the model profile.
-3. Implement a dense execution path and backend option mappings.
-4. Inspect `Engine.space()`; fix ownership at the profile, backend, or optimization
-   provider if an axis is missing.
-5. Build candidates exclusively through `Engine.optimize()`.
-6. Benchmark against a dense same-backend, same-topology baseline.
-7. Apply the model-owned acceptance contract, including authenticity checks.
-8. Publish only the accepted candidate under the model plugin's `presets/` directory.
-9. Mark the catalog entry `released` only when the preset and acceptance contract pass.
+- `sol` is the only product namespace and `Engine` is the user/agent facade.
+- One integration lives under `sol/plugins/<model>/` and owns its manifest, reference mapping, backends, targets, technique space, presets, and plans.
+- Do not add a central registry, registration decorator, import side effect, global model switch, or duplicate config schema.
+- Do not copy an upstream architecture into Sol when a maintained semantic reference can own it.
+- Keep semantic references, performance backends, and target-specific optimization choices distinct.
+- Hardware, GPU count, interconnect, and distributed topology are part of target identity.
+- Expose only verified technique seams. Unknown dimensions and combinations fail closed.
+- Keep discovery dependency-light and never import GPU frameworks just to list models.
+- Keep generated artifacts and adaptation state outside Git.
 
-## Repository lifecycle
+## Release invariants
 
-- `models/`: runtime snapshots and historical profiles, not the public integration API.
-- `experiments/`: unstable lab manifests, not released behavior.
-- `benchmarks/`: shared rubrics, profiles, and compact golden evidence.
-- `runs/`: local generated artifacts; never commit videos, full logs, weights, caches,
-  or environments.
-- `site_docs/optimizations/search-guides/`: human guidance only; never treat it as the
-  executable tuning domain.
+- Compare baseline and candidate on the same backend and topology.
+- Record raw samples, immutable commands, environment, artifacts, quality, and engagement evidence.
+- Do not multiply component speedups or promote historical numbers.
+- A preset is draft until the state machine reaches `awaiting_approval` and a maintainer approves it.
+- The agent must not approve itself, publish, deploy, push, or broaden its allowed paths without explicit authority.
 
-## Required verification
-
-Run the dependency-light contract suite for every control-plane change:
+## Verification
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 \
-  python3 -m unittest discover -s tests/control_plane -v
+  python3 -m unittest discover -s tests -v
+python3 -m compileall -q sol tests
 sol doctor
 git diff --check
 ```
 
-Add tests for lazy loading, legal-space filtering, deterministic resolution, rejected
-unsupported options, and dry-run side-effect behavior. GPU integration work additionally
-requires same-config baseline/optimized evidence and the plugin's acceptance gates.
-
-## Completion bar
-
-Do not call a model adapted because one script ran. It is complete when an ordinary
-user can discover and run a preset, an advanced user can inspect/customize it in a few
-lines, and a weaker agent can reproduce its legal tuning space without understanding
-unrelated model or architecture code.
+Add dependency-light contract tests for every control-plane change. Model work additionally follows the evidence requirements returned by `sol adapt next`.

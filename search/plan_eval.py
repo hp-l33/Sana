@@ -24,12 +24,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-try:
-    import tomllib
-except ModuleNotFoundError:  # py<3.11 (sana env) ships tomli
-    import tomli as tomllib
-
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
+
+from sol_engine import _toml  # noqa: E402
+
 _SEV = {"none": 0, "low": 1, "medium": 2, "high": 3}
 _OVERALL = {"pass": 0, "fail": 1, "inconclusive": 2, None: 3}
 
@@ -75,8 +74,7 @@ def _runtime_technique_env(technique: str, cfg: dict) -> dict[str, str]:
 
 
 def _load(p: Path) -> dict:
-    with open(p, "rb") as f:
-        return tomllib.load(f)
+    return _toml.load(p)
 
 
 def _load_json_if_present(path: Path) -> dict | None:
@@ -244,14 +242,15 @@ def render_config(profile: dict, technique: str, cfg: dict, kind: str = "build_t
                      config_id: str | None = None, out_path: Path | None = None) -> dict:
     """Model profile + the composed technique env -> a launcher-valid manifest."""
     sys.path.insert(0, str(REPO))
-    from efficiency import ModelSpec, compose
-    from efficiency.registry import build_technique, build_transform
+    from techniques import compose
+    from techniques.registry import build_technique, build_transform
+    from sol_engine.catalog import builtin_catalog
 
     item = build_transform(technique, **cfg) if kind == "build_transform" else build_technique(technique, **cfg)
-    spec = ModelSpec(
-        name=str(profile.get("spec") or profile.get("id") or "manifest"),
-        capabilities=getattr(item, "required_capabilities", frozenset()),
-    )
+    model_id = str(profile.get("id") or "")
+    entry = builtin_catalog().require("models", model_id)
+    adapter_type = entry.load_provider()
+    spec = adapter_type(profile=str(entry.get("profile")), repo_root=REPO).to_model_spec()
     plan = compose([item], spec)
     tech_env: dict = {}
     if kind == "build_transform":

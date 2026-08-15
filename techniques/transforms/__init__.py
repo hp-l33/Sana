@@ -1,9 +1,4 @@
 # Copyright 2025 SGLang authors
 #
-# Build/load-time ModelTransforms. Importing registers each via @register_transform.
-
-from techniques.transforms import (  # noqa: F401
-    kwl_fusions,
-    nvfp4_ffn,
-    sparse_attention,
-)
+# Build/load-time transforms are imported only when selected by a canonical
+# recipe/provider reference. There are no registration import side effects.

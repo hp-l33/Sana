@@ -1,11 +1,5 @@
 # Copyright 2025 SGLang authors
 #
-# Concrete efficiency techniques. Importing a module registers its technique
-# via @register_technique.
-
-from techniques.methods import (  # noqa: F401
-    payload_cache,
-    step_cache,
-    teacache,
-    token_prune,
-)
+# Concrete efficiency techniques are imported on demand from canonical provider
+# references in sol_engine/catalog.toml. Keep this package initializer empty so
+# importing ``techniques`` does not import torch or every optional dependency.

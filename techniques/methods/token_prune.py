@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 try:
     from techniques.registry import register_technique
-    from techniques.schedule import Schedule, as_schedule
+    from techniques.schedule import Schedule, as_schedule, at_steps
     from techniques.technique import (
         Capability,
         Phase,
@@ -30,7 +30,7 @@ try:
     )
 except ModuleNotFoundError:  # pragma: no cover - runtime mirror import path
     from sglang.multimodal_gen.runtime.efficiency.registry import register_technique
-    from sglang.multimodal_gen.runtime.efficiency.schedule import Schedule, as_schedule
+    from sglang.multimodal_gen.runtime.efficiency.schedule import Schedule, as_schedule, at_steps
     from sglang.multimodal_gen.runtime.efficiency.technique import (
         Capability,
         Phase,
@@ -807,11 +807,15 @@ class TokenPrune(Technique):
         method: str = "feat_norm",
         compensation: str = "prev",
         enabled: "Schedule | bool" = True,
+        steps: str = "",
     ):
+        if steps:
+            enabled = at_steps(steps, True, False)
         super().__init__(enabled=enabled)
         self.keep_ratio = as_schedule(keep_ratio)
         self.method = method
         self.compensation = compensation
+        self.steps = steps
 
     def is_active(self, ctx: TechniqueContext) -> bool:
         return super().is_active(ctx) and self.keep_ratio.at(ctx.step, ctx.stage) < 1.0

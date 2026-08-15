@@ -1,3 +1,4 @@
+id = "minimax_h3"
 family = "video_t2va"
 submodule = "models/minimax_h3/GB200"
 run_script = "models/minimax_h3/GB200/run_minimax_h3_gpu.sh"

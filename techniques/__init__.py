@@ -9,11 +9,10 @@
 #   * ModelSpec    -- a model's declaration of structural seams (capabilities).
 #   * compose()    -- type-checks capabilities, rejects structural conflicts
 #                     (effect system), orders by phase -> an executable Plan.
-#   * registry     -- register_technique / register_transform.
+#   * catalog      -- immutable provider metadata + lazy import references.
 #
-# Config dry-runs synthesize a minimal ModelSpec from manifest capabilities.
-# External adapters may still register a ModelSpec, but this package no longer
-# ships unvalidated per-model specs.
+# Model capabilities come from selected model adapters. Importing this package
+# does not import all concrete techniques/transforms for registration effects.
 
 from __future__ import annotations
 
@@ -58,10 +57,6 @@ from techniques.technique import (
     Technique,
     TechniqueContext,
 )
-
-# register built-in techniques and transforms (import side-effects)
-from techniques import methods  # noqa: E402,F401
-from techniques import transforms  # noqa: E402,F401
 
 __all__ = [
     "Schedule", "as_schedule", "at_steps", "before", "by_stage", "const",

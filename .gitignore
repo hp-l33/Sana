@@ -21,6 +21,9 @@ loops/*/scratch/
 *.ckpt
 *.bin
 __pycache__/
+build/
+dist/
+*.egg-info/
 .DS_Store
 exports/
 
@@ -97,6 +100,8 @@ tests/
 !tests/
 tests/*
 !tests/test_ltx25_hardware_runtime.py
+!tests/control_plane/
+!tests/control_plane/**
 
 # ---------------------------------------------------------------------------
 # Development notes. Kept on disk, not published.

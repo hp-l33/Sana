@@ -1,8 +1,8 @@
 # Model profile for LTX-2.3 runtime defaults.
 #
-# Config manifests declare required capabilities; dry-run validation creates
-# a minimal manifest-derived ModelSpec rather than importing a built-in
-# per-model spec file. The 22B runtime glue stays in the SGLang runtime; the two
+# Config manifests declare requirements; dry-run validation resolves this
+# profile through the model catalog and accepts only seams marked wired below.
+# The 22B runtime glue stays in the SGLang runtime; the two
 # runnable arms (baseline / optimized) are vendored under models/ltx23/.
 
 id = "ltx23"

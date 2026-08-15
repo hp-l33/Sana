@@ -6,15 +6,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-try:
-    import tomllib
-except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
-    import tomli as tomllib
+from sol_engine import _toml
 
 
 def load_toml(path: Path) -> dict[str, Any]:
-    with path.open("rb") as f:
-        return tomllib.load(f)
+    return _toml.load(path)
 
 
 def manifest_id(data: dict[str, Any]) -> str:
@@ -47,6 +43,8 @@ def is_efficiency_config(data: dict[str, Any]) -> bool:
 
 
 def load_model_profile(data: dict[str, Any], repo_root: Path) -> dict[str, Any]:
+    """Compatibility helper used by the launcher when merging profile defaults."""
+
     profile_id = str(data.get("model_profile") or "").strip()
     if not profile_id:
         return {}
@@ -54,6 +52,13 @@ def load_model_profile(data: dict[str, Any], repo_root: Path) -> dict[str, Any]:
     if not profile_path.exists():
         raise ValueError(f"model_profile {profile_id!r} not found at {profile_path}")
     return load_toml(profile_path)
+
+
+def model_spec_key(data: dict[str, Any], repo_root: Path) -> str:
+    """Return a descriptive model label; never construct capabilities from it."""
+
+    profile = load_model_profile(data, repo_root)
+    return str(profile.get("spec") or data.get("model_profile") or "")
 
 
 def schema_errors(data: dict[str, Any], repo_root: Path) -> list[str]:
@@ -132,6 +137,7 @@ def _capability_lookup():
             "step_cache": Capability.SUPPORTS_STEP_CACHE,
             "cuda_graph_probe": Capability.SUPPORTS_CUDA_GRAPH_PROBE,
             "nvfp4_linear": Capability.SUPPORTS_NVFP4_LINEAR,
+            "kernel_fusion": Capability.SUPPORTS_KERNEL_FUSION,
         }
     )
     return lookup
@@ -153,33 +159,28 @@ def resolve_capabilities(names: list[str]):
     return frozenset(resolved)
 
 
-def model_spec_key(data: dict[str, Any], repo_root: Path) -> str:
-    adapter = data.get("adapter", {})
-    if isinstance(adapter, dict) and adapter.get("model_spec"):
-        return str(adapter["model_spec"])
-    profile = load_model_profile(data, repo_root)
-    if profile.get("spec"):
-        return str(profile["spec"])
-    return "manifest"
+def _profile_model_spec(data: dict[str, Any], repo_root: Path):
+    """Resolve a model-owned adapter; never copy recipe requirements into it."""
 
+    from sol_engine.catalog import builtin_catalog
 
-def _manifest_model_spec(name: str, capabilities):
-    from techniques.spec import ModelSpec
-    from techniques.technique import Capability
-
-    caps = set(capabilities)
-    if Capability.HAS_TRANSFORMER_BLOCKS in caps:
-        caps.add(Capability.BLOCKS)
-    if Capability.HAS_ATTENTION_BACKEND_SWITCH in caps:
-        caps.add(Capability.SWAPPABLE_ATTENTION)
-    if Capability.SUPPORTS_TOKEN_GATHER_SCATTER in caps:
-        caps.add(Capability.PRUNABLE_TOKENS)
-    return ModelSpec(
-        name=name,
-        capabilities=frozenset(caps),
-        seq_dim=1,
-        extra={"source": "manifest_capabilities"},
-    )
+    profile_id = str(data.get("model_profile") or "").strip()
+    if not profile_id:
+        raise ValueError(
+            "efficiency config requires model_profile so capabilities can be "
+            "resolved from model-owned seam evidence"
+        )
+    entry = builtin_catalog().require("models", profile_id)
+    profile = str(entry.get("profile", ""))
+    if not profile:
+        raise ValueError(f"model catalog entry {profile_id!r} has no profile")
+    adapter_type = entry.load_provider()
+    adapter = adapter_type(profile=profile, repo_root=repo_root)
+    if adapter.id != profile_id:
+        raise ValueError(
+            f"model catalog id {profile_id!r} does not match profile id {adapter.id!r}"
+        )
+    return adapter.to_model_spec()
 
 
 def _build_efficiency_item(data: dict[str, Any]):
@@ -233,16 +234,15 @@ def dry_run_manifest(
 
     req = data.get("requirements", {})
     required = resolve_capabilities([str(x) for x in req.get("capabilities", [])])
-    spec_key = model_spec_key(data, repo_root)
     item = _build_efficiency_item(data)
     item_required = getattr(item, "required_capabilities", frozenset())
-    spec = _manifest_model_spec(spec_key, required | item_required)
+    spec = _profile_model_spec(data, repo_root)
 
-    missing = spec.missing(required)
+    missing = spec.missing(required | item_required)
     if missing:
         raise ValueError(
-            f"{manifest_id(data)!r} requires capabilities "
-            f"{[cap.value for cap in missing]} not provided by model {spec.name!r}"
+            f"{manifest_id(data)!r} or its provider requires capabilities "
+            f"{sorted(cap.value for cap in missing)} not provided by model {spec.name!r}"
         )
 
     plan = compose([item], spec)
@@ -260,6 +260,9 @@ def dry_run_manifest(
         "model_spec": spec.name,
         "model_spec_source": spec.extra.get("source"),
         "required_capabilities": sorted(cap.value for cap in required),
+        "provider_required_capabilities": sorted(
+            cap.value for cap in item_required
+        ),
         "effective_capabilities": sorted(cap.value for cap in spec.capabilities),
         "compose": {
             "plan": repr(plan),

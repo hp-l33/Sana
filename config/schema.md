@@ -197,9 +197,9 @@ capabilities = [
 ]
 
 [adapter]
-# Descriptive target label only. Dry-run validation now synthesizes a minimal
-# ModelSpec from [requirements].capabilities instead of importing built-in
-# per-model specs.
+# Descriptive target label only. Dry-run validation resolves model_profile
+# through sol_engine/catalog.toml and derives capabilities from that profile's
+# model-owned [seam_status] evidence.
 model_spec = "Cosmos3"
 
 [efficiency]
@@ -225,8 +225,9 @@ allow_non_bit_exact = true
 quality_gate = "baseline-comparable"
 ```
 
-Layer-1 dry-run validation checks schema, required capabilities, adapter
-discovery, compose compatibility, and transform env preview. For build/load
+Layer-1 dry-run validation checks schema, required capabilities against wired
+model seams, adapter discovery, compose compatibility, and transform env preview. A
+config cannot grant its model the capabilities it requests. For build/load
 transforms the preview is also merged into `launch.sh`, so the generated run
 bundle is inspectable before GPU submission.
 
@@ -234,11 +235,11 @@ bundle is inspectable before GPU submission.
 
 `verification.mode = "gpu"` means the config ultimately needs GPU evidence.
 It does not mean the current Cosmos3 runtime already consumes every advertised
-optimization. `scripts/launch_config.py` therefore allows `--mode dry-run`
-for all valid config, but refuses `--mode local` and `--mode sbatch` for
-Cosmos3 config that are currently only pure policies without runtime
-consumers, wiring probes, unconsumed env/config adapters, or wired paths with
-missing runtime dependencies.
+optimization. Dry-run now rejects configs whose required seam is only
+`declared`, `partial`, or `todo`; it accepts only model-owned `wired` or
+`verified` evidence. Local and Slurm modes additionally refuse Cosmos3 configs
+that are still pure policies without runtime consumers, wiring probes,
+consumed adapters, or wired paths with missing runtime dependencies.
 
 Use `--allow-unsupported-gpu` only for an explicit diagnostic env/export run.
 Those runs must not be reported as proof that the public-reference technique is

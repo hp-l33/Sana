@@ -185,6 +185,7 @@ video_spec = ModelSpec(
             Capability.SWAPPABLE_ATTENTION,
             Capability.SUPPORTS_STEP_CACHE,
             Capability.SUPPORTS_NVFP4_LINEAR,
+            Capability.SUPPORTS_KERNEL_FUSION,
         }
     ),
     seq_dim=1,

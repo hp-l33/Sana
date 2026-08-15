@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from techniques.registry import register_transform
-from techniques.technique import Seam
+from techniques.technique import Capability, Seam
 from techniques.transform import (
     ModelTransform,
     TransformContext,
@@ -132,6 +132,7 @@ class KWLFusions(ModelTransform):
     name = "kwl_fusions"
     phase = TransformPhase.BUILD
     writes = frozenset({Seam.KERNEL_FUSION})  # SHARED -> never a false conflict
+    required_capabilities = frozenset({Capability.SUPPORTS_KERNEL_FUSION})
 
     def __init__(
         self,

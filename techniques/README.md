@@ -1,4 +1,4 @@
-# `efficiency/`
+# `techniques/`
 
 Model-agnostic efficiency config code for video-generation inference.
 
@@ -12,9 +12,10 @@ prefix details.
 ```text
 config/<dimension>/<config>.toml
   -> scripts/launch_config.py --mode dry-run
-  -> efficiency.config_manifest.dry_run_manifest()
-  -> registry.build_technique/build_transform()
-  -> compose(items, manifest-derived ModelSpec)
+  -> techniques.config_manifest.dry_run_manifest()
+  -> catalog alias -> canonical provider (loaded on demand)
+  -> selected model adapter -> profile-owned wired capabilities
+  -> compose(items, adapter-derived ModelSpec)
   -> transform env preview or runtime Technique plan
   -> model runtime hook consumes that plan
 ```
@@ -30,8 +31,8 @@ not required repo state.
 - `transform.py`: build/load-time `ModelTransform`.
 - `compose.py`: capability checks, seam-conflict checks, and ordered `Plan`.
 - `schedule.py`: step/stage schedule DSL.
-- `registry.py`: technique/transform registration plus optional external
-  model-spec registration.
+- `registry.py`: compatibility facade over the immutable provider catalog; it
+  owns no process-global registration dictionaries.
 - `config_manifest.py`: TOML schema checks, capability resolution, and
   manifest-derived dry-run specs.
 
@@ -57,18 +58,18 @@ not required repo state.
 
 ## Model Capability Contract
 
-This repo no longer ships built-in per-model spec files. Config dry-runs
-synthesize a minimal `ModelSpec` from `[requirements].capabilities` in the
-manifest, then `compose()` checks the selected technique or transform against
-that contract. The concrete model adapter remains in the runtime code under
-`sglang-runtime/`.
+`sol_engine.adapters.profile.ProfileModelAdapter` derives a `ModelSpec` from
+the selected model profile. Only `[seam_status]` entries marked `wired` or
+`verified` become capabilities. `[requirements].capabilities` is checked
+against that model-owned contract; it is never copied into the contract.
 
 ## Verify
 
 ```bash
-# Every config resolves, and its repo-side paths exist:
-for c in config/*/*.toml; do python3 scripts/run.py "$c" --print >/dev/null || echo "FAILED $c"; done
+# Release configs resolve and their repo-side paths exist. A frontier config
+# whose model profile has no wired seam is expected to fail closed here.
+for c in config/*/*.toml; do python3 scripts/run.py "$c" --print >/dev/null || echo "REJECTED $c"; done
 
-# The technique registry agrees with itself:
+# The lazy provider catalog and composition layer agree:
 PYTHONNOUSERSITE=1 python3 techniques/selftest.py
 ```

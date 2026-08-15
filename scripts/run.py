@@ -32,8 +32,8 @@ CONFIG FORMAT -- one layer, no nesting:
 
 That split is the entire schema. It needs no [sections] because environment
 variables are conventionally uppercase already, so the two namespaces cannot
-collide. A config is therefore also readable by anything that can split on '=';
-this file carries a 12-line fallback parser so it does not even need tomllib.
+collide. Both flat configs and nested manifests use Sol-Engine's shared TOML
+compatibility layer, which has a dependency-free fallback for Python 3.9.
 
 PATHS -- two bases, one rule each:
 
@@ -57,6 +57,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
+from sol_engine import _toml  # noqa: E402
 from scripts import launch_config  # noqa: E402
 
 # Keys this launcher consumes. Everything else that is uppercase becomes env.
@@ -115,49 +116,7 @@ def to_manifest(
 
 
 def load_config(path: Path) -> dict[str, object]:
-    text = path.read_text()
-    try:
-        import tomllib
-
-        return tomllib.loads(text)
-    except ModuleNotFoundError:
-        pass
-    try:
-        # draco and cs ship python 3.9. A config manifest has nested tables the
-        # fallback below cannot represent, so the backport comes first --
-        # launch_config and collect_run already prefer it for the same reason.
-        import tomli
-
-        return tomli.loads(text)
-    except ModuleNotFoundError:
-        pass
-    # Last resort. The flat format makes this honest: there are no tables to
-    # track, so a line-splitter is a complete parser -- of a flat config. It is
-    # not one for a manifest, which is what the guard below is for.
-    out: dict[str, object] = {}
-    for raw in text.splitlines():
-        line = raw.split("#", 1)[0].strip() if not raw.strip().startswith("#") else ""
-        if not line:
-            continue
-        # Checked before the '=' filter, not after it. After was unreachable: a
-        # header like [env] contains no '=', so the `continue` fired first and
-        # the header was skipped in silence. Every key under it was then
-        # flattened into the top level, prepare_run merged an [env] it read as
-        # empty, and the run proceeded with the model profile's defaults alone.
-        # On draco that dropped H3_CONTAINER_RUNTIME = "pyxis" from an A100
-        # config, so the job never entered its container and died on `No module
-        # named sglang` -- while manifest.resolved.toml, written from a copy
-        # parsed properly, showed the value present the whole time.
-        if line.startswith("["):
-            raise SystemExit(
-                f"{path}: {line} -- this parser reads flat configs only. To read "
-                "a config manifest on python < 3.11, install the tomli backport."
-            )
-        if "=" not in line:
-            continue
-        key, value = (part.strip() for part in line.split("=", 1))
-        out[key] = value.strip('"').strip("'")
-    return out
+    return _toml.load(path)
 
 
 def split_config(cfg: dict[str, object], path: Path) -> tuple[dict, dict]:

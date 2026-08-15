@@ -20,27 +20,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-try:
-    import tomllib
-except ModuleNotFoundError:  # python < 3.11
-    # draco and cs ship python 3.9. run.py carries a flat-config fallback parser
-    # for exactly this reason, but a manifest has nested tables that a
-    # line-splitter cannot read, so fall back to the tomli backport rather than
-    # refusing to start. Without this the merged launcher cannot begin a run at
-    # all on those two clusters, which is where the A100 work happens -- the
-    # A100 verification failed here in 7 seconds.
-    try:
-        import tomli as tomllib
-    except ModuleNotFoundError as exc:  # pragma: no cover
-        raise SystemExit(
-            "Reading TOML needs python 3.11+ (tomllib) or the tomli backport; "
-            "this interpreter has neither"
-        ) from exc
-
 REPO_FOR_IMPORT = Path(__file__).resolve().parents[1]
 if str(REPO_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(REPO_FOR_IMPORT))
 
+from sol_engine import _toml  # noqa: E402
 from techniques.config_manifest import (  # noqa: E402
     dry_run_manifest,
     load_model_profile as load_efficiency_model_profile,
@@ -113,8 +97,7 @@ def repo_root() -> Path:
 
 
 def load_toml(path: Path) -> dict[str, Any]:
-    with path.open("rb") as f:
-        return tomllib.load(f)
+    return _toml.load(path)
 
 
 def config_id(data: dict[str, Any]) -> str:

@@ -36,6 +36,25 @@ solution composed of **five reusable acceleration techniques**, delivering a **2
 end-to-end speedup** across the three models. We are actively continuing development to
 support a wider range of models.
 
+## 🧪 Experimental control plane
+
+The experimental control plane separates user-facing aliases from Python
+implementations. Its catalog stores immutable `module:qualname` references and imports
+only the model adapter and optimization providers selected by a release recipe—there is
+no process-global registry populated by import side effects.
+
+```bash
+python3 -m sol_engine doctor
+python3 -m sol_engine models
+python3 -m sol_engine plan recipes/ltx23/fullopt.toml
+python3 -m sol_engine run recipes/ltx23/fullopt.toml --print
+```
+
+`plan` resolves the model-owned capabilities, checks component conflicts and ordering,
+previews the runtime environment, and emits a deterministic fingerprint before the
+existing launcher can allocate a GPU. Install `pyproject.toml` in editable mode to use
+the `sol-engine` console command. See [Control plane](site_docs/control-plane.md).
+
 ## 📰 News
 
 - **[2026/08/13]** 🔥 **[LTX-2.5](https://github.com/Lightricks/LTX-2) across B200, GeForce RTX 5090, and DGX Spark** [[Code](models/ltx25/) | [Blog](https://nvlabs.github.io/Sana/Sol-Engine/LTX25/)] — reaches up to **4.68×** multi-step pipeline speedup and **1.90×** distilled pipeline speedup.

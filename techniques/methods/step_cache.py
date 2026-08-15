@@ -15,6 +15,7 @@ from __future__ import annotations
 from techniques.registry import register_technique
 from techniques.schedule import as_schedule, at_steps
 from techniques.technique import (
+    Capability,
     Phase,
     Seam,
     Technique,
@@ -43,6 +44,7 @@ class StepCache(Technique):
     phase = Phase.ON_STEP
     reads = frozenset({Seam.STEP_OUTPUT})
     writes = frozenset({Seam.STEP_OUTPUT})
+    required_capabilities = frozenset({Capability.SUPPORTS_STEP_CACHE})
 
     def __init__(self, skip="", delta_scale: float = 0.0, enabled=True):
         # A string-skip spec ("16-28", "1-2,5") must be PARSED into a step set

@@ -12,6 +12,16 @@ Sol-Engine is *agent-native*: a coding agent (Claude Code / OpenAI Codex) drives
 
 Every optimization is a config manifest: an id, kind (baseline / patch / control), the runtime it uses, the environment flags that turn the technique on, and its eval profile. A single launcher renders a reproducible run bundle and submits it. Baselines and same-topology controls are first-class, so every speedup has an explicit, stated denominator (single-GPU / same-topology / vs-naive).
 
+For release-facing adaptations, an agent should produce an isolated model adapter,
+canonical recipe, contract tests, and evidence metadata. It must not edit a central
+Python registry or add import-for-registration statements. CI promotes validated
+metadata into the release catalog; runtime workers receive the resolved provider
+references and import only what the plan selects.
+
+During adaptation, the agent should use a scoped `--catalog` file. Promotion into the
+built-in catalog is a release decision after the adapter, recipe, tests, and evidence pass;
+it is not a prerequisite for development.
+
 ## Quality gates
 
 No speedup is accepted on wall-clock alone:

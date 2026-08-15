@@ -40,9 +40,11 @@ script, prompt file -- without running anything. It is the check worth doing;
 the audit and alignment scripts that used to be named here were one-off probes
 and are not part of what this repository ships.
 
-`scripts/launch_config.py --mode dry-run` is expected to work for every
-config. `--mode local` and `--mode sbatch` are intentionally blocked for
-Cosmos3 config whose advertised optimization is only a pure policy without
-a runtime consumer, wiring probe, unconsumed env/config adapter, or a wired path
-with a missing runtime dependency; pass `--allow-unsupported-gpu` only for
-explicit diagnostic export checks.
+`scripts/launch_config.py --mode dry-run` fails closed when a config requests a
+capability that its model profile has not marked `wired` or `verified`. This is
+intentional for the Cosmos3 frontier/methodology set: a config requirement is
+not evidence that the runtime seam exists. `--mode local` and `--mode sbatch`
+also remain blocked when an advertised optimization is only a pure policy
+without a runtime consumer, wiring probe, consumed adapter, or required runtime
+dependency; pass `--allow-unsupported-gpu` only for explicit diagnostic export
+checks.

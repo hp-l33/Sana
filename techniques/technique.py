@@ -80,6 +80,7 @@ class Capability(enum.Enum):
     SUPPORTS_STEP_CACHE = "supports_step_cache"
     SUPPORTS_CUDA_GRAPH_PROBE = "supports_cuda_graph_probe"
     SUPPORTS_NVFP4_LINEAR = "supports_nvfp4_linear"
+    SUPPORTS_KERNEL_FUSION = "supports_kernel_fusion"
 
 
 @dataclass

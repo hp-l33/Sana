@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 from techniques.registry import register_transform
-from techniques.technique import Seam
+from techniques.technique import Capability, Seam
 from techniques.transform import (
     ModelTransform,
     TransformContext,
@@ -34,6 +34,7 @@ class NVFP4FFN(ModelTransform):
     name = "nvfp4_ffn"
     phase = TransformPhase.LOAD
     writes = frozenset({Seam.FFN_PRECISION})
+    required_capabilities = frozenset({Capability.SUPPORTS_NVFP4_LINEAR})
 
     def __init__(
         self,

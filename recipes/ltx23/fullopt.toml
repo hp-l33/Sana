@@ -1,0 +1,51 @@
+schema_version = 1
+id = "ltx23/fullopt@experimental-v1"
+model = "ltx23"
+launch_config = "config/ltx23/fullopt.toml"
+preview_stage = "stage2"
+description = "Canonical LTX-2.3 full-opt recipe resolved before delegating to the existing runtime."
+
+[[optimization]]
+id = "kwl_fusions"
+provider = "techniques.transforms.kwl_fusions:KWLFusions"
+stages = ["stage1", "stage2"]
+
+[optimization.params]
+kwl_adapter = "ltx2"
+
+[[optimization]]
+id = "nvfp4_ffn"
+provider = "techniques.transforms.nvfp4_ffn:NVFP4FFN"
+stages = ["stage1", "stage2"]
+
+[optimization.params]
+module_scope = "video_ffn"
+
+[[optimization]]
+id = "sparse_attention"
+provider = "techniques.transforms.sparse_attention:SparseAttention"
+stages = ["stage2"]
+
+[optimization.params]
+sparsity = 0.9
+component = "transformer_2"
+stage2_dense_layers = "0-1"
+
+[[optimization]]
+id = "step_cache"
+provider = "techniques.methods.step_cache:StepCache"
+stages = ["stage1"]
+
+[optimization.params]
+skip = "16-28"
+
+[[optimization]]
+id = "token_prune"
+provider = "techniques.methods.token_prune:TokenPrune"
+stages = ["stage2"]
+
+[optimization.params]
+keep_ratio = 0.5
+method = "feat_norm"
+compensation = "prev"
+steps = "1-2"

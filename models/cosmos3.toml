@@ -1,8 +1,8 @@
 # Model profile for Cosmos3 runtime defaults.
 #
-# Config manifests declare required capabilities; dry-run validation creates
-# a minimal manifest-derived ModelSpec rather than importing a built-in
-# per-model spec file. Runtime-specific glue stays in the SGLang runtime.
+# Config manifests declare requirements; dry-run validation resolves this
+# profile through the model catalog and accepts only seams marked wired below.
+# Runtime-specific glue stays in the SGLang runtime.
 
 id = "cosmos3"
 spec = "Cosmos3"                 # descriptive target label in generated metadata

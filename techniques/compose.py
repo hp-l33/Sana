@@ -165,9 +165,9 @@ def compose(items: Sequence, spec: ModelSpec, horizon: int = 64) -> Plan:
         missing = spec.missing(it.required_capabilities)
         if missing:
             raise CompositionError(
-                f"{it.name!r} requires capabilities {[c.value for c in missing]} "
+                f"{it.name!r} requires capabilities {sorted(c.value for c in missing)} "
                 f"not provided by model {spec.name!r} "
-                f"(provided: {[c.value for c in spec.capabilities]})"
+                f"(provided: {sorted(c.value for c in spec.capabilities)})"
             )
     # 2. structural conflict (effect) check
     problems = check_conflicts(items, horizon)

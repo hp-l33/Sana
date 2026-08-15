@@ -1,5 +1,21 @@
 # Run
 
+## Release recipe interface
+
+The experimental interface validates a canonical component recipe before handing its
+launch config to the existing runner:
+
+```bash
+python3 -m sol_engine plan recipes/ltx23/fullopt.toml
+python3 -m sol_engine run recipes/ltx23/fullopt.toml --print
+python3 -m sol_engine run recipes/ltx23/fullopt.toml
+```
+
+Use this path for published presets. It checks model-owned capabilities and provider
+identity before any GPU allocation.
+
+## Direct launch-config interface
+
 ```bash
 python3 scripts/run.py config/<model>/<arm>.toml
 ```

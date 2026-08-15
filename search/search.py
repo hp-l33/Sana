@@ -18,22 +18,17 @@ import itertools
 import sys
 from pathlib import Path
 
-try:
-    import tomllib  # py3.11+
-except ModuleNotFoundError:  # py<3.11 (e.g. the sana env, 3.10) ships tomli
-    import tomli as tomllib
-
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from efficiency import ModelSpec, compose  # noqa: E402
-from efficiency.compose import CompositionError  # noqa: E402
-from efficiency.registry import build_technique, build_transform  # noqa: E402
+from sol_engine import _toml  # noqa: E402
+from techniques import compose  # noqa: E402
+from techniques.compose import CompositionError  # noqa: E402
+from techniques.registry import build_technique, build_transform  # noqa: E402
 
 
 def _load_toml(p: Path) -> dict:
-    with open(p, "rb") as f:
-        return tomllib.load(f)
+    return _toml.load(p)
 
 
 def load_model_profile(model_id: str) -> dict:
@@ -41,6 +36,16 @@ def load_model_profile(model_id: str) -> dict:
     if not p.exists():
         raise SystemExit(f"no model profile: {p} (see models/README.md)")
     return _load_toml(p)
+
+
+def load_model_spec(model_id: str):
+    """Resolve model-owned wired capabilities through the release catalog."""
+
+    from sol_engine.catalog import builtin_catalog
+
+    entry = builtin_catalog().require("models", model_id)
+    adapter_type = entry.load_provider()
+    return adapter_type(profile=str(entry.get("profile")), repo_root=REPO).to_model_spec()
 
 
 def load_dimensions() -> list[tuple[str, dict]]:
@@ -77,6 +82,7 @@ def _baseline_tier_counts(method_baselines: list[dict]) -> dict[str, int]:
 
 def search(model_id: str, verbose: bool = True) -> list[dict]:
     prof = load_model_profile(model_id)
+    spec = load_model_spec(model_id)
 
     results = []
     for dim_id, dim in load_dimensions():
@@ -89,10 +95,6 @@ def search(model_id: str, verbose: bool = True) -> list[dict]:
             for cfg in cfgs:
                 try:
                     item = _build(kind, name, cfg)
-                    spec = ModelSpec(
-                        name=str(prof.get("spec") or model_id),
-                        capabilities=getattr(item, "required_capabilities", frozenset()),
-                    )
                     compose([item], spec)
                     ok += 1
                 except CompositionError as e:
@@ -118,7 +120,7 @@ def search(model_id: str, verbose: bool = True) -> list[dict]:
     if verbose:
         print(
             f"# acceleration search — model '{model_id}' "
-            f"(target={prof.get('spec', model_id)}, spec_source=technique_required_capabilities)"
+            f"(target={prof.get('spec', model_id)}, spec_source=profile_seam_status)"
         )
         if prof.get("run_script"):
             print(f"#   run_script: {prof['run_script']}")

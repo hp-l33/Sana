@@ -36,7 +36,6 @@ except ModuleNotFoundError:  # python < 3.11
 TERMINAL_STATUS = {"terminal_pending_review", "blocked", "complete"}
 NONTERMINAL_RUN_STATUS = {"submitted", "running"}
 LOCAL_PROCESS_PATTERNS = (
-    "search/plan_eval.py",
     "scripts/collect_run.py",
     "scripts/launch_candidate.py",
     "tools/vision/lpips_judge.py",

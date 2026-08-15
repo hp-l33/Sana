@@ -2,7 +2,7 @@
 
 HunyuanVideo-13B is a 13B text-to-video path in Sol-Engine. The optimized
 configuration runs single-GPU with torch.compile, TeaCache, and **SOL Attention**
-(`techniques/sparse_backends/`).
+(`sol/optimizations/sparse_backends/`).
 
 ## Performance status
 
@@ -14,10 +14,10 @@ configuration; a fresh same-config benchmark is pending.
 
 ```bash
 # baseline (vanilla diffusers HunyuanVideoPipeline, single GPU)
-python3 scripts/launch_config.py config/hunyuan_video/baseline.toml --mode sbatch --confirm-submit
+python3 scripts/launch_config.py experiments/hunyuan_video/baseline.toml --mode sbatch --confirm-submit
 
 # optimized release stack
-python3 scripts/launch_config.py config/hunyuan_video/full.toml --mode sbatch --confirm-submit
+python3 scripts/launch_config.py experiments/hunyuan_video/full.toml --mode sbatch --confirm-submit
 ```
 
 The optimized config enables torch.compile, TeaCache, and SOL Attention

@@ -7,7 +7,7 @@ spec = "Wan2.1-T2V-1.3B"
 display_name = "Wan2.1-T2V-1.3B 480p text-to-video baseline (diffusers WanPipeline)"
 submodule = "models/wan21_t2v_1_3b/baseline"
 run_script = "scripts/run_wan22_ti2v_5b_gpu.sh"
-eval_profile = "evals/profiles/official_video_t2v_wan22_ti2v_5b.toml"
+eval_profile = "benchmarks/profiles/official_video_t2v_wan22_ti2v_5b.toml"
 
 [official_config]
 model = "wan21_t2v_1_3b_diffusers"

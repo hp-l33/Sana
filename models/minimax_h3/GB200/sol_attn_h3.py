@@ -61,7 +61,7 @@ import torch.nn.functional as F
 # and the Sol-Attn kernel landed a week later. Only the sparse path resolves through here.
 _RELEASE_ROOT = os.environ.get(
     "H3_SOL_ATTN_ROOT",
-    "/home/yitongl/code/agent_deploy/sol-attn-release/techniques/sparse_backends",
+    "/home/yitongl/code/agent_deploy/sol-attn-release/sol/optimizations/sparse_backends",
 )
 
 

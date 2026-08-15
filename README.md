@@ -1,209 +1,239 @@
-<p align="center" style="border-radius: 10px">
-  <img src="assets/sol-engine-logo.png" width="45%" alt="Sol-Engine logo"/>
+<p align="center">
+  <img src="assets/sol-engine-logo.png" width="42%" alt="Sol-Engine logo"/>
 </p>
 
-<h3 align="center">
-  Accelerated video-diffusion inference
-</h3>
-
-<h3 align="center">
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/docs/">📖 Docs</a> &nbsp;|&nbsp;
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/docs/pipelines/sana/">Pipelines</a> &nbsp;|&nbsp;
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/cache/">Techniques</a> &nbsp;|&nbsp;
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/docs/installation/">Install</a>
-</h3>
+<h3 align="center">Composable acceleration for video generation</h3>
 
 <p align="center">
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/"><img src="https://img.shields.io/badge/🏠_Homepage-Sol--Engine-76b900?style=flat-square" alt="Homepage"/></a>
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/H3/"><img src="https://img.shields.io/badge/MiniMax--H3-Project_Page-76b900?style=flat-square" alt="MiniMax H3"/></a>
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/LTX25/"><img src="https://img.shields.io/badge/LTX--2.5-Project_Page-76b900?style=flat-square" alt="LTX-2.5"/></a>
-  <a href="https://arxiv.org/abs/2606.23743"><img src="https://img.shields.io/badge/📄_arXiv-2606.23743-b31b1b?style=flat-square" alt="arXiv"/></a>
-  <a href="https://nvlabs.github.io/Sana/Sol-Engine/docs/"><img src="https://img.shields.io/badge/📖_Docs-github.io-blue?style=flat-square" alt="Docs"/></a>
-  <a href="#-license"><img src="https://img.shields.io/badge/License-Apache_2.0-green?style=flat-square" alt="License"/></a>
+  <a href="https://nvlabs.github.io/Sana/Sol-Engine/docs/">Documentation</a> ·
+  <a href="site_docs/architecture.md">Architecture</a> ·
+  <a href="site_docs/agent-workflow.md">Model adaptation</a> ·
+  <a href="https://arxiv.org/abs/2606.23743">Paper</a>
 </p>
 
-<h4 align="center">
-  Agent-native workflow · Full-stack acceleration techniques · A wide range of video generation models
-</h4>
+Sol is an inference optimization engine with one product contract:
 
----
+- ordinary users run a released model preset with one command;
+- advanced users compose only the optimizations integrated for that model;
+- maintainers and agents adapt a model through the same model plugin, search
+  space, preset, and acceptance gate that users consume.
 
-**Sol-Engine** is an efficiency-oriented inference codebase for high-resolution video
-diffusion, built on [SGLang](https://github.com/sgl-project/sglang)'s `multimodal_gen`
-runtime. It features an **agent-native inference workflow** and reduces three production
-models into **one unambiguous acceleration line**. This is powered by a full-stack
-solution composed of **five reusable acceleration techniques**, delivering a **2× to 3×
-end-to-end speedup** across the three models. We are actively continuing development to
-support a wider range of models.
+The public surface is deliberately small: `Engine`, `ModelPlugin`, `BackendAdapter`,
+`Optimization`, `Preset`, and `Run`. There is no import-time registration and no
+second agent-only orchestration framework hidden beside the product.
 
-## 🧪 Experimental control plane
+> This branch is an experimental architecture migration. `ltx23:fullopt` is the
+> first preset migrated end to end. Other catalog entries are marked
+> `profile_only` until they have a backend adapter, preset, and acceptance
+> contract; they are not presented as plug-and-play releases.
 
-The experimental control plane separates user-facing aliases from Python
-implementations. Its catalog stores immutable `module:qualname` references and imports
-only the model adapter and optimization providers selected by a release recipe—there is
-no process-global registry populated by import side effects.
+## Start here
 
 ```bash
-python3 -m sol_engine doctor
-python3 -m sol_engine models
-python3 -m sol_engine plan recipes/ltx23/fullopt.toml
-python3 -m sol_engine run recipes/ltx23/fullopt.toml --print
+python3 -m pip install --upgrade "pip>=24" "setuptools>=69"
+python3 -m pip install -e .
+
+# Discovery is side-effect free: no model or optimization provider is imported.
+sol models
+sol presets
+
+# Resolve and validate the released stack without launching a GPU process.
+sol inspect ltx23:fullopt --json
+sol run ltx23:fullopt --dry-run
+
+# Run after installing the runtime and weights described in QUICKSTART.md.
+sol run ltx23:fullopt \
+  --set SGLANG_RUNTIME_ROOT=/path/to/sglang-runtime
 ```
 
-`plan` resolves the model-owned capabilities, checks component conflicts and ordering,
-previews the runtime environment, and emits a deterministic fingerprint before the
-existing launcher can allocate a GPU. Install `pyproject.toml` in editable mode to use
-the `sol-engine` console command. See [Control plane](site_docs/control-plane.md).
+`inspect` resolves exact providers, validates model capabilities and composition
+conflicts, compiles the preset for the selected backend, and emits a deterministic
+fingerprint. `--dry-run` performs the same work without creating a `runs/`
+directory, writing a record, or launching a process.
 
-## 📰 News
+Use `sol models --json` and `sol space ...` when the caller is an agent or another
+tool:
 
-- **[2026/08/13]** 🔥 **[LTX-2.5](https://github.com/Lightricks/LTX-2) across B200, GeForce RTX 5090, and DGX Spark** [[Code](models/ltx25/) | [Blog](https://nvlabs.github.io/Sana/Sol-Engine/LTX25/)] — reaches up to **4.68×** multi-step pipeline speedup and **1.90×** distilled pipeline speedup.
-- **[2026/08/09]** 🔥 **[MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) on H100 and A100** [[Code](models/minimax_h3/) | [Blog](https://nvlabs.github.io/Sana/Sol-Engine/H3-DataCenter/)] — reaches **3.56×** end-to-end on 4×H100 and **3.55×** on 4×A100.
-- **[2026/08/06]** 🔥 **[MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) on GB10 and RTX 5090** [[Code](models/minimax_h3/) | [Blog](https://nvlabs.github.io/Sana/Sol-Engine/H3-OnDevice/)] — reaches **3.92×** end-to-end on DGX Spark (GB10) and **4.52×** on RTX 5090.
-- **[2026/08/03]** 🔥 **[MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) on GB200** [[Code](models/minimax_h3/) | [Blog](https://nvlabs.github.io/Sana/Sol-Engine/H3/)] — reaches **3.95×** end-to-end on 8×GB200.
-- **[2026/07/28]** 🔥 **Sol-Attn** [[Paper](https://arxiv.org/abs/2607.24027) | [Code](techniques/sparse_backends/sol_attn/)] — sparse video attention lands with released SM89/SM90/SM100/SM120 kernels for [**HunyuanVideo-13B**](models/hunyuan_video/) (**~5.03×**) and [**Wan2.1-T2V-14B**](models/wan21_t2v_14b/) (**~3.48×**) end-to-end.
-- **[2026/07/15]** 🔥 **Three new models** — [Wan2.2 TI2V-5B](scripts/wan5b/run_optimized.sh) **~2.89×**, [Wan2.2-A14B](scripts/wan14b/run_optimized.sh) **~2.17×**, and [LingBot-Video](scripts/lingbot/run_optimized.sh) **~2.60×** end-to-end.
-- **[2026/07/13]** ⚙️ **Agent workflow update** — refreshed the agent-native optimization workflow (a master orchestrator driving per-technique executor sub-agents with automatic quality gates). See the [agent-workflow](site_docs/agent-workflow.md) page.
-- **[2026/06]** 📖 **Docs release** — full documentation site live: [3 pipeline designs + 5 acceleration techniques](https://nvlabs.github.io/Sana/Sol-Engine/docs/).
-- **[2026/06]** 🔥 **SANA-Video** — EasyCache + kernel fusion + torch.compile → **~2.77×** end-to-end.
-- **[2026/06]** 🔥 **LTX-2.3** — KWL fusion + cache + PISA + NVFP4 + token-prune → **~2.38×** end-to-end.
-- **[2026/06]** 🔥 **Cosmos3-Super** — TeaCache + step-selective NVFP4 → **~2.27×** end-to-end (4×GB200).
+```bash
+sol models --json
+sol space ltx23 --backend sglang
+```
 
+The model list distinguishes `released` from `profile_only`. The tuning space
+contains only optimizations that both satisfy the model capabilities and have a
+real mapping in the selected backend.
 
-## ⚡ Models & speedups
+## Customize in a few lines
 
-<div align="center">
+The Python API is the shared surface for advanced users and adaptation agents:
 
-| Model | Acceleration line | Speedup |
-|---|---|---|
-| [[weight](https://huggingface.co/nvidia/Cosmos3-Super) \| [code](models/)] **Cosmos3-Super** | TeaCache + step-selective NVFP4 | **~2.27×** |
-| [[weight](https://huggingface.co/Lightricks/LTX-2.3) \| [code](models/)] **LTX-2.3** | kernel fusion + cache + PISA + NVFP4 + token-prune | **~2.38×** |
-| [[weight](https://huggingface.co/Efficient-Large-Model/SANA-Video_2B_480p_diffusers) \| [code](models/sana_video/)] **SANA-Video** | EasyCache + kernel fusion + compile | **~2.77×** |
-| [[weight](https://huggingface.co/Wan-AI/Wan2.2-TI2V-5B) \| [code](models/wan22_ti2v_5b/)] **Wan2.2 TI2V-5B** | EasyCache + kernel fusion + compile | **~2.89×** |
-| [[weight](https://huggingface.co/Wan-AI/Wan2.2-T2V-A14B-Diffusers) \| [code](models/wan22_t2v_a14b/)] **Wan2.2-A14B** | kernel fusion + EasyCache + PISA | **~2.17×** |
-| [[weight](https://huggingface.co/robbyant/lingbot-video-moe-30b-a3b) \| [code](models/lingbot_video/)] **LingBot-Video** | kernel fusion + refiner PISA + EasyCache | **~2.60×** |
-| [[weight](https://huggingface.co/hunyuanvideo-community/HunyuanVideo) \| [code](models/hunyuan_video/)] **HunyuanVideo-13B** | kernel fusion + TeaCache + [**Sol-Attn**](techniques/sparse_backends/) | **~5.03×** |
-| [[weight](https://huggingface.co/Wan-AI/Wan2.1-T2V-14B-Diffusers) \| [code](models/wan21_t2v_14b/)] **Wan2.1-T2V-14B** | kernel fusion + EasyCache + [**Sol-Attn**](techniques/sparse_backends/) | **~3.48×** |
-| [[weight](https://huggingface.co/Lightricks/LTX-2.5) \| [code](models/ltx25/) \| [blog](https://nvlabs.github.io/Sana/Sol-Engine/LTX25/)] **LTX-2.5** | parallel optimization + FBCache + kernel fusion | **~4.68×** |
-| [[weight](https://huggingface.co/MiniMaxAI/MiniMax-H3) \| [code](models/minimax_h3/) \| [blog](https://nvlabs.github.io/Sana/Sol-Engine/H3/)] **MiniMax-H3** | context parallel + kernel fusion + [**Sol-Attn**](techniques/sparse_backends/) + FirstBlockCache | **~3.95×** |
+```python
+from sol import Engine
 
-</div>
+engine = Engine()
 
-<sub>Speedup is warm end-to-end latency versus the unoptimized same-topology baseline, with model, prompt/seed, resolution, step count, batch size, and GPU topology held fixed. SANA 480p (832×480, 81f, 50 steps); Cosmos3 1280×720, 189f, 35 steps; LTX-2.3 1088×1920, 241f. LTX-2.5 uses the 4×B200 BF16 multi-step pipeline at 1536×1024 for 5 s (30-step Stage 1 + 2-step Stage 2), comparing the official sequence-parallel baseline (39.23 s) with full-opt (8.38 s). Wan-5B 704×1280, 121f, 50 steps (1 GPU); Wan-14B 720×1280, 81f, 40 steps (1 GPU); LingBot base 480×832→refiner 1088×1920, 121f (4 GPU CP4); HunyuanVideo 1280×720, 129f, 50 steps (1 GPU); Wan2.1-14B 720×1280, 81f, 50 steps (1 GPU). MiniMax-H3 uses 8×GB200 at 1344×768, 124 frames, 50 steps, and batch 1, comparing the Diffusers baseline (27.205 s) with full-opt (6.883 s).</sub>
+# Machine-readable, capability- and backend-filtered domain.
+space = engine.space("ltx23", backend="sglang")
 
-## 🧩 The five acceleration methods
+# Model-owned stages are filled in automatically; callers tune only options.
+candidate = (
+    engine.optimize("ltx23", backend="sglang")
+    .use("step_cache", skip="16-28")
+    .use(
+        "token_prune",
+        keep_ratio=0.5,
+        method="feat_norm",
+        compensation="prev",
+        steps="1-2",
+    )
+    .preset(name="cache-prune")
+)
 
-Video diffusion inference exposes redundancy at three complementary levels. At
-the **algorithm level**, adjacent denoising steps run structurally similar
-computations over slowly changing latents, so cache can reuse or skip step
-outputs. At the **model level**, long spatiotemporal sequences contain redundant
-tokens and attention interactions, motivating sparse attention and token
-pruning. At the **kernel level**, DiT blocks repeatedly launch memory-bound work
-around GEMMs, layout movement, normalization, activation, and precision
-conversion, which quantization and fusion reduce. Sol-Engine composes the five
-methods across these levels.
+plan = engine.inspect(candidate)
+run = engine.run(candidate, dry_run=True)
+```
 
-<div align="center">
+The caller cannot invent an installation stage, select an unintegrated
+optimization, or silently pass a parameter the backend ignores. Those are model
+plugin responsibilities and fail before launch.
 
-| # | Method | What it does |
-|---|---|---|
-| 1 | **[Cache](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/cache/)** | reuse a denoise step's output (TeaCache / EasyCache / fix-step) |
-| 2 | **[Quantization](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/quant/)** | TransformerEngine NVFP4 4-bit, step-selective |
-| 3 | **[Kernel fusion](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/kernel/)** | fuse the memory-bound DiT glue (AdaLN, QK-norm+RoPE, gates, FFN) |
-| 4 | **[Sparse attention](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/sparse/)** | piecewise block-sparse video self-attention |
-| 5 | **[Token pruning](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/token_prune/)** | drop low-salience video tokens at mid refine steps |
+## What the engine is based on
 
-</div>
+Sol does not maintain a third complete implementation of every model architecture.
+It separates semantic ownership from optimized execution:
 
-## 🌀 Sol-Attention
+```mermaid
+flowchart LR
+    U["User or agent"] --> E["Sol Engine"]
+    E --> C["ModelPlugin contract"]
+    C --> D["Diffusers semantic reference"]
+    C --> S["SGLang performance backend"]
+    E --> O["Composable optimizations"]
+    O --> S
+    C --> P["Released preset + acceptance gate"]
+```
 
-[**Sol-Attn**](techniques/sparse_backends/) is our sparse attention
-technique for video DiTs: video-token self-attention runs through a sparse
-kernel that computes only the most relevant key blocks, while using light weight compensating operation to maintain visual quality. It plugs
-into a model runtime through env-gated hooks and powers the optimization stacks of
-[**HunyuanVideo-13B**](models/hunyuan_video/),
-[**Wan2.1-T2V-14B**](models/wan21_t2v_14b/) and
-[**MiniMax-H3**](models/minimax_h3/). The HunyuanVideo and Wan2.1 stacks reach
-**~5.03×** and **~3.48×** end-to-end speedup, respectively.
+- **Diffusers is the semantic reference** for model components, configuration,
+  preprocessing/postprocessing, and a widely understood correctness baseline.
+- **SGLang is the high-performance execution backend** where an integrated model
+  benefits from optimized scheduling, distributed execution, and kernels.
+- **Sol owns the optimization contract and adapters**, not another forked model
+  zoo. A model may add another backend later without changing the user-facing
+  preset or optimization API.
 
-Backend selection is automatic: RTX 4090 (SM89), H100 (SM90), B200 (SM100),
-and RTX 5090 (SM120) use their optimized CuTe DSL kernels when CuTe is
-installed. Older supported GPUs such as A100 (SM80), or installations without
-CuTe DSL, use the portable Triton implementation. Model call sites do not need
-architecture-specific changes. See the
-[Sol-Attn usage guide](techniques/sparse_backends/) for requirements and API
-details.
+For performance claims, compare an optimized backend with a dense baseline on the
+same backend and topology. Use the Diffusers reference to check semantic drift;
+do not confuse a cross-framework latency comparison with optimization speedup.
 
-## 🚀 Quick start (agent-native)
+## The production ↔ release loop
 
-Sol-Engine is installed and launched the **agent-native** way. Rather than hand-running
-the setup steps, you hand a coding agent — OpenAI **Codex** or **Claude Code** — a single
-goal and let it create the environment, fetch the weights, and run all three models in
-both `baseline` and `fullopt` settings, **troubleshooting and adapting the scripts to
-your machine** as it goes.
+The plugin boundary is also the adaptation boundary. This is how engine capability
+is decoupled from agent capability:
 
-From the repo root, give the agent this goal:
+```mermaid
+flowchart LR
+    A["Adapt model seams"] --> B["Engine.space(model, backend)"]
+    B --> C["Compose and tune optimizations"]
+    C --> D["Benchmark + acceptance gate"]
+    D --> E["Publish model-owned preset"]
+    E --> F["User runs the same preset"]
+    F --> B
+```
+
+An agent does not search over arbitrary model code, architecture code, and all
+optimization implementations at once. Maintainers first encode the model seams and
+backend mappings in a `ModelPlugin`. The engine then derives the legal domain. The
+agent searches only optimization composition and parameters, and its winning
+candidate is serialized as the same `Preset` users run.
+
+There is intentionally no top-level `search/` framework. Search is a replaceable
+policy over `Engine.space()`; it does not own another schema, registry, or release
+format.
+
+## Repository map
 
 ```text
-/goal Execute the inference code for the three models using both baseline and full-opt
-settings with the following requirements. Refer to AGENTS.md for the environment creation,
-model download, and inference guides. For the environment, you need to create a new
-environment. For model weights, you are allowed to reuse existing weights if they are
-locally available; otherwise, you need to download them. Regarding adaptability, be aware
-that the provided guides for environment creation, download scripts, and inference may
-contain system incompatibilities, so you are expected to troubleshoot and adapt them to
-your specific machine.
+sol/
+  engine.py                 one public facade
+  plugin.py                 model integration contract
+  backend.py                execution-backend contract
+  optimization.py           public optimization protocol
+  preset.py                 model-owned release format
+  plugins/
+    ltx23/
+      profile.toml          semantics and verified seams
+      references/           Diffusers semantic reference
+      backends/             SGLang execution mapping
+      presets/              user-facing optimization stacks
+      acceptance.toml       release gate
+      launch/               backend launch manifests
+  optimizations/            reusable methods, transforms, and kernels
+  _internal/                legacy laboratory bridge, never public API
+
+models/                     upstream/runtime snapshots and historical profiles
+benchmarks/                 evaluation contracts, rubrics, and golden evidence
+experiments/                unpublished laboratory manifests
+site_docs/                  concepts and adaptation guides
+tests/                      control-plane contract tests
 ```
 
-## 📖 Getting started
+Directory names reflect lifecycle rather than implementation accidents:
 
-- 📚 **[Full documentation](https://nvlabs.github.io/Sana/Sol-Engine/docs/)** — a comprehensive guidebook to the whole project: pipeline designs, acceleration techniques, setup, and model references in one place
-- 🛠️ **[Installation](https://nvlabs.github.io/Sana/Sol-Engine/docs/installation/)** — conda env, editable install, CUDA-JIT fixups, and the HF model repos + download helpers
-- 🎬 **Optimized pipelines** — [SANA-Video](https://nvlabs.github.io/Sana/Sol-Engine/docs/pipelines/sana/) · [Cosmos3-Super](https://nvlabs.github.io/Sana/Sol-Engine/docs/pipelines/cosmos3/) · [LTX-2.3](https://nvlabs.github.io/Sana/Sol-Engine/docs/pipelines/ltx/) · [**HunyuanVideo-13B**](site_docs/pipelines/hunyuan.md) · [**Wan2.1-T2V-14B**](site_docs/pipelines/wan21_14b.md)
-- ⚙️ **Acceleration techniques** — [Cache](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/cache/) · [Quantization](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/quant/) · [Kernel fusion](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/kernel/) · [Sparse attention](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/sparse/) · [Token pruning](https://nvlabs.github.io/Sana/Sol-Engine/docs/techniques/token_prune/)
+- `sol/plugins/<model>/presets/` contains released, model-owned stacks. There is
+  no global `recipes/` directory that duplicates model and provider identity.
+- `benchmarks/` defines how a candidate is judged; it is not a second runtime.
+- `experiments/` contains lab inputs and may be unstable. A successful experiment
+  becomes a preset only after the acceptance gate passes.
+- `runs/` is local generated output and is ignored by Git. The engine defaults to
+  `${XDG_STATE_HOME:-~/.local/state}/sol/runs` and writes only during an actual run
+  or an explicit `Run.save()`.
+- Optimization search guides live under documentation. The executable search
+  domain is derived from the model/backend contract.
 
-## ✅ To-do
+## Adding a model
 
-- [x] **SANA-Video** acceleration line — EasyCache + fusion + compile
-- [x] **Cosmos3-Super** acceleration line — TeaCache + step-selective NVFP4
-- [x] **LTX-2.3** acceleration line — KWL fusion + cache + PISA + NVFP4 + token-prune
-- [x] **Wan2.2 TI2V-5B, Wan2.2-A14B, and LingBot-Video** acceleration lines — kernel fusion + cache + PISA/compile
-- [x] **HunyuanVideo-13B and Wan2.1-T2V-14B** acceleration lines — kernel fusion + cache + Sol-Attn
-- [x] **Sol-Attn** sparse-attention release — optimized SM89/SM90/SM100/SM120 kernels + portable Triton backend
-- [x] **MiniMax-H3** across GB200, H100, A100, GB10, and RTX 5090 — context parallel + kernel fusion + Sol-Attn + FirstBlockCache
-- [x] **LTX-2.5** across B200, GeForce RTX 5090, and DGX Spark — parallel optimization + FBCache + kernel fusion + Sol-Attn
-- [ ] More backends for each acceleration method
-- [ ] Agent-native workflow without human-in-the-loop
+A complete model release is one cohesive plugin, not edits scattered across a
+global registry, recipe tree, eval tree, and launcher switch:
 
-## 🙏 Acknowledgements
+1. Add `sol/plugins/<model>/profile.toml` and encode only verified model seams.
+2. Add a semantic reference under `references/` and an executable adapter under
+   `backends/`.
+3. Map each supported optimization to concrete model stages in the adapter.
+4. Ask `Engine.space()` for the legal tuning domain; tune candidates through
+   `Engine.optimize()`.
+5. Record the benchmark and fail-closed quality/performance requirements in
+   `acceptance.toml`.
+6. Publish the accepted candidate under `presets/` and add its discovery metadata
+   to `sol/catalog.toml`.
 
-Built on [SGLang](https://github.com/sgl-project/sglang) and
-[🤗 Diffusers](https://github.com/huggingface/diffusers). Pipelines wrap
-[SANA-Video](https://github.com/NVlabs/Sana), NVIDIA
-[Cosmos](https://github.com/NVIDIA/Cosmos), and
-[Lightricks LTX-Video](https://github.com/Lightricks/LTX-Video). Acceleration methods
-draw on TeaCache, EasyCache, SVDQuant/Nunchaku, FlashAttention,
-[TransformerEngine](https://github.com/NVIDIA/TransformerEngine), and the sparse-attention
-/ token-reduction literature surveyed in the [docs](https://nvlabs.github.io/Sana/Sol-Engine/docs/).
+See [the full agent workflow](site_docs/agent-workflow.md) for the file contract
+and promotion checklist.
 
-## 📌 Citation
+## Optimization library
 
-```bibtex
-@misc{li2026solvideoinferenceengine,
-  title         = {Sol Video Inference Engine: Agent-Native Full-Stack Acceleration Framework for Efficient Video Generation},
-  author        = {Yitong Li and Junsong Chen and Haopeng Li and Haozhe Liu and Jincheng Yu and Ligeng Zhu and Ping Luo and Song Han and Enze Xie},
-  year          = {2026},
-  eprint        = {2606.23743},
-  archivePrefix = {arXiv},
-  primaryClass  = {cs.CV},
-  doi           = {10.48550/arXiv.2606.23743},
-  url           = {https://arxiv.org/abs/2606.23743},
-}
+The current reusable library covers caching, token pruning, sparse attention,
+NVFP4 FFNs, and kernel fusion. Implementations are lazy-loaded from canonical
+`module:qualname` references; short names such as `step_cache` are serialization
+aliases, not decorators or process-global registry state.
+
+Sol-Attn and its architecture-specific kernels live at
+[`sol/optimizations/sparse_backends/`](sol/optimizations/sparse_backends/).
+
+## Verification
+
+CPU-only control-plane tests do not import PyTorch or allocate a GPU:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 \
+  python3 -m unittest discover -s tests/control_plane -v
 ```
 
-## 📄 License
+`sol doctor` validates every released preset and acceptance contract. GPU
+benchmarks remain model/backend-specific and are required before promotion, not
+for catalog discovery or plan inspection.
 
-Code in this repository is released under the Apache-2.0 license. The paper is
-available on arXiv under the arXiv.org perpetual, non-exclusive distribution
-license. Model weights follow their respective upstream licenses (SANA-Video,
-NVIDIA Cosmos, Lightricks LTX) — see each model card.
+## License
+
+Code in this repository is Apache-2.0. Model weights and vendored upstream code
+retain their respective licenses; consult the relevant model and third-party
+notices.

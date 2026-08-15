@@ -5,7 +5,7 @@ family = "video_t2v"
 submodule = "models/sana_video/baseline"
 base_commit = ""
 run_script = "scripts/run_sana_video_gpu.sh"
-eval_profile = "evals/profiles/official_video_t2v_sana_video.toml"
+eval_profile = "benchmarks/profiles/official_video_t2v_sana_video.toml"
 
 [official_config]
 model = "sana_video_5b"

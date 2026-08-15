@@ -1,37 +1,108 @@
-# Agent workflow
+# Model adaptation workflow
 
-Sol-Engine is *agent-native*: a coding agent (Claude Code / OpenAI Codex) drives model onboarding and optimization, not just fixed scripts. This page documents the orchestration behind the "hand an agent a goal" quick start.
+Agent-native does not mean asking an agent to understand the whole repository and
+freely patch whatever it finds. It means the engine presents a bounded, testable
+adaptation contract that agents of different capability can follow.
 
-## Orchestration modes
+## The boundary
 
-**Lightweight (master + executors).** A single master orchestrator supervises up to three executor sub-agents, one per acceleration technique (`kernel`, `cache`, `sparse`/PISA). Each executor explores its technique's search space (detached, watchdog-guarded), returns validated config, and the master gates, dedupes, and integrates them. Preferred for a fast, bounded optimization sweep on a new model.
+Before a model is integrated, the problem may include model code, architecture code,
+runtime code, optimization implementations, composition, and tuning. The model plugin
+absorbs the first three. Reusable optimization providers absorb the fourth. After that,
+the agent's search domain is composition and tuning only.
 
-**Full framework.** Per-technique executor nodes with richer fan-out for deep multi-round searches.
+```mermaid
+flowchart LR
+    R["Upstream model"] --> M["Encode ModelPlugin"]
+    M --> S["Engine.space"]
+    S --> T["Compose + tune"]
+    T --> B["Benchmark"]
+    B --> G{"Acceptance pass?"}
+    G -- no --> T
+    G -- yes --> P["Publish Preset"]
+    P --> U["User runs Preset"]
+```
 
-## Config contract
+## Adaptation checklist
 
-Every optimization is a config manifest: an id, kind (baseline / patch / control), the runtime it uses, the environment flags that turn the technique on, and its eval profile. A single launcher renders a reproducible run bundle and submits it. Baselines and same-topology controls are first-class, so every speedup has an explicit, stated denominator (single-GPU / same-topology / vs-naive).
+### 1. Establish semantics
 
-For release-facing adaptations, an agent should produce an isolated model adapter,
-canonical recipe, contract tests, and evidence metadata. It must not edit a central
-Python registry or add import-for-registration statements. CI promotes validated
-metadata into the release catalog; runtime workers receive the resolved provider
-references and import only what the plan selects.
+- Identify the Diffusers pipeline or component layout used as the semantic
+  reference.
+- Freeze the official prompt, seed, resolution, frame count, steps, scheduler, and
+  output processing in `profile.toml`.
+- Produce reference artifacts before changing execution.
 
-During adaptation, the agent should use a scoped `--catalog` file. Promotion into the
-built-in catalog is a release decision after the adapter, recipe, tests, and evidence pass;
-it is not a prerequisite for development.
+If no Diffusers implementation exists, document the upstream semantic owner rather
+than copying the architecture into Sol.
 
-## Quality gates
+### 2. Encode verified seams
 
-No speedup is accepted on wall-clock alone:
+Inspect the model and mark only structural seams that exist and are reachable:
+transformer blocks, denoise steps, swappable attention, FFN linears, token axes, and
+kernel-fusion hooks. A requested optimization is not evidence that a seam exists.
 
-- **LPIPS** against frozen baseline frames.
-- **Multimodal visual gate** — a hosted VLM reviews baseline-vs-config side-by-side against a rubric (snow/speckle, blur, mosaic / patch-boundary, banding, ghosting, melting, temporal flicker, coherence & motion regressions).
-- **Authenticity check** — confirms the technique actually engaged (PISA wrote its stats, cache actually reused steps) so a run cannot report a "fake" speedup from a no-op optimization.
+### 3. Implement a backend adapter
 
-## Conventions
+Map an optimization ID to exact model stages and compile its options into the runtime
+configuration. Every supported option needs a consumer. Unknown or unsupported options
+must fail; silently ignoring a knob is forbidden.
 
-- Report speedups against a stated baseline; never mix denominators silently.
-- Timing excludes model load; medians over official validation prompts; same seed.
-- Optimizations that change floating-point reduction or attention sparsity are marked non–bit-exact.
+Start with a dense path. For a performance claim, keep model semantics and topology
+fixed between dense and optimized arms.
+
+### 4. Ask the engine for the domain
+
+```python
+engine.space("new_model", backend="sglang").as_dict()
+```
+
+Do not create another registry or a hand-written search-space file. If the result is
+missing an optimization, fix the model capability evidence, backend integration, or
+optimization parameter schema at its owner.
+
+### 5. Search through the public API
+
+```python
+candidate = (
+    engine.optimize("new_model", backend="sglang")
+    .use("step_cache", threshold=0.1)
+    .preset(name="candidate-001")
+)
+plan = engine.inspect(candidate)
+```
+
+An agent may implement any search policy around this API. It should log candidate
+fingerprints, parameters, timing evidence, and rejection reasons. The search policy is
+not part of the runtime product.
+
+### 6. Gate and promote
+
+The model-owned `acceptance.toml` is fail-closed. Promotion requires the declared
+artifacts, official-config match, performance threshold, completed warmup, and quality
+gate. Also verify that the optimization actually engaged; a fast no-op is not a result.
+
+Serialize the accepted candidate under `sol/plugins/<model>/presets/`. Add the model's
+lazy discovery metadata to `sol/catalog.toml`, mark it `released`, and add control-plane
+tests. Users now run exactly what the adaptation agent produced.
+
+## Evidence rules
+
+- State the performance denominator and topology.
+- Keep load/compile timing separate from steady-state inference timing.
+- Use same prompt, seed, scheduler, dimensions, and step count.
+- Record non-bit-exact behavior for sparse, quantized, or reduction-order-changing paths.
+- Keep generated videos, logs, and run records outside Git; preserve compact golden
+  metadata and acceptance summaries under `benchmarks/`.
+
+## Done means releasable
+
+A model is not complete because a patched script runs once. It is complete when:
+
+- discovery is side-effect free;
+- the backend maps every advertised option;
+- `Engine.space()` exposes only executable choices;
+- a preset resolves deterministically;
+- dry-run has no side effects;
+- the acceptance contract passes with reproducible evidence;
+- the same preset is the documented user entry point.

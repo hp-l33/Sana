@@ -3,5 +3,5 @@
 The source workspace stored `golden_base.mp4` and `golden_refined.mp4` here.
 They are generated benchmark artifacts and are intentionally excluded from the
 vendored code snapshot (the coordinator globally ignores MP4 files). Recreate
-the control with `config/lingbot_video/baseline.toml` before running an
+the control with `experiments/lingbot_video/baseline.toml` before running an
 aligned quality comparison.

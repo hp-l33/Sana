@@ -62,9 +62,10 @@ markdown_extensions:
 nav:
   - Overview: index.md
   - Installation: installation.md
-  - Control plane: control-plane.md
+  - Architecture: architecture.md
+  - Engine API: control-plane.md
   - Run: run.md
-  - Agent workflow: agent-workflow.md
+  - Model adaptation: agent-workflow.md
   - Pipelines:
       - Cosmos3-Super: pipelines/cosmos3.md
       - LTX-2.3: pipelines/ltx.md
@@ -74,7 +75,7 @@ nav:
       - LingBot-Video: pipelines/lingbot.md
       - HunyuanVideo-13B: pipelines/hunyuan.md
       - Wan2.1-T2V-14B: pipelines/wan21_14b.md
-  - Techniques:
+  - Optimizations:
       - Cache:
           - Overview: techniques/cache.md
           - TeaCache: techniques/cache/teacache.md
@@ -109,6 +110,7 @@ nav:
           - Residual and modulation glue fusion: techniques/kernel/residual_modulation.md
           - QKV merge: techniques/kernel/qkv_merge.md
           - torch.compile: techniques/kernel/torch_compile.md
+      - Search guides: optimizations/search-guides/README.md
 
 extra:
   social:

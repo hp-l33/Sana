@@ -15,7 +15,7 @@ from typing import Any
 
 
 DEFAULT_HELPER = Path.home() / ".codex/skills/nvidia-vision-api/scripts/nvidia_multimodal_chat.py"
-DEFAULT_RUBRIC = "evals/rubrics/gemini_visual_artifact_gate.md"
+DEFAULT_RUBRIC = "benchmarks/rubrics/gemini_visual_artifact_gate.md"
 DEFAULT_BASE_URL = "https://inference-api.nvidia.com/v1"
 DEFAULT_MODEL = "gcp/google/gemini-3.5-flash"
 DEFAULT_VIDEO_MAX_FRAMES = 32

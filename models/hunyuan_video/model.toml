@@ -5,9 +5,9 @@ legacy_profile = "models/hunyuan_video.toml"
 contract_kind = "model_baseline_minimal_copy"
 
 [baseline]
-manifest = "config/hunyuan_video/baseline.toml"
+manifest = "experiments/hunyuan_video/baseline.toml"
 runtime_root = "models/hunyuan_video/baseline"
-eval_profile = "evals/profiles/official_video_t2v_hunyuanvideo_13b.toml"
+eval_profile = "benchmarks/profiles/official_video_t2v_hunyuanvideo_13b.toml"
 description = "HunyuanVideo-13B t2v baseline (pristine diffusers HunyuanVideoPipeline: dense attention, no cache, no compile). Runnable code is vendored in models/hunyuan_video/baseline; weights are referenced read-only through MODEL_REPO. The optimized config adds TeaCache, torch.compile, and the released Sol-Attn SM90/SM100 kernel with exact text KV sink and dense text queries."
 
 [baseline.copy]
@@ -15,14 +15,15 @@ paths_are_repo_relative = true
 include = [
   "models/hunyuan_video.toml",
   "models/hunyuan_video/**",
-  "config/hunyuan_video/baseline.toml",
-  "config/schema.md",
-  "evals/profiles/official_video_t2v_hunyuanvideo_13b.toml",
-  "evals/tiers.toml",
+  "experiments/hunyuan_video/baseline.toml",
+  "experiments/schema.md",
+  "benchmarks/profiles/official_video_t2v_hunyuanvideo_13b.toml",
+  "benchmarks/tiers.toml",
   "scripts/launch_config.py",
   "scripts/collect_run.py",
-  "search/plan_eval.py",
-  "techniques/config_manifest.py",
+  "sol/engine.py",
+  "sol/tuning.py",
+  "sol/_internal/legacy_manifest.py",
 ]
 exclude = [
   ".git/**",
@@ -31,7 +32,6 @@ exclude = [
   "runs/**",
   "output/**",
   "workflow/**",
-  "search_space/**",
 ]
 
 [[baseline.reference_only]]

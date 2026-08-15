@@ -57,7 +57,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
-from sol_engine import _toml  # noqa: E402
+from sol import _toml  # noqa: E402
 from scripts import launch_config  # noqa: E402
 
 # Keys this launcher consumes. Everything else that is uppercase becomes env.
@@ -78,7 +78,7 @@ def is_config_manifest(cfg: dict[str, object]) -> bool:
     """Tell the two dialects apart.
 
     Tested on the fields prepare_run actually requires, not on the two that are
-    merely common. config/cosmos3/sglang_baseline.toml is a manifest with
+    merely common. experiments/cosmos3/sglang_baseline.toml is a manifest with
     neither model_profile nor a [runtime] table -- it names its submodule and
     run_script directly -- and a model_profile/runtime test called it a flat
     config and then rejected every lowercase key it has.
@@ -145,7 +145,7 @@ def main() -> int:
     )
     ap.add_argument(
         "config",
-        help="a flat single-file config, or a config manifest from config/",
+        help="a flat single-file config, or a config manifest from experiments/",
     )
     ap.add_argument("--run-root", default="runs", help="run bundle root")
     ap.add_argument(
@@ -204,7 +204,7 @@ def main() -> int:
             launch_args.mode = "dry-run"
             # Only [runtime].root, never submodule: root is repo-relative by
             # contract, while submodule may name an external checkout
-            # (config/cosmos3/sglang_baseline.toml points at the SGLang runtime),
+            # (experiments/cosmos3/sglang_baseline.toml points at the SGLang runtime),
             # which is machine-specific and belongs in the warn bucket.
             root = cfg.get("runtime", {}).get("root") if isinstance(cfg.get("runtime"), dict) else None
             if root and not (REPO / str(root)).is_dir():

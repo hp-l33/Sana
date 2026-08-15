@@ -6,7 +6,7 @@ spec = "Wan2.2-TI2V-5B"
 display_name = "Wan2.2-TI2V-5B 720p121 text-to-video baseline"
 submodule = "models/wan22_ti2v_5b/baseline"
 run_script = "scripts/run_wan22_ti2v_5b_gpu.sh"
-eval_profile = "evals/profiles/official_video_t2v_wan22_ti2v_5b.toml"
+eval_profile = "benchmarks/profiles/official_video_t2v_wan22_ti2v_5b.toml"
 
 [official_config]
 model = "wan22_ti2v_5b_diffusers"

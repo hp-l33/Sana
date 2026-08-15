@@ -9,7 +9,7 @@ The layout this assumes is the repository's own:
 
     models/minimax_h3/demo_prompt.json   the official cell's prompt
     models/minimax_h3/GB200/diffusers_src  the pinned diffusers (PR #14355)
-    techniques/sparse_backends                      Sol-Attn's released kernel
+    sol/optimizations/sparse_backends                      Sol-Attn's released kernel
 
 `run_minimax_h3_gpu.sh` exports the same variables before launching, matching the
 8xGB200 entrypoint next door, so a config run never depends on these fallbacks. They exist
@@ -29,7 +29,7 @@ REPO_ROOT = MODEL_DIR.parent.parent
 PROMPT_FILE = Path(os.environ.get("H3_PROMPT_FILE",
                                   MODEL_DIR / "demo_prompt.json"))
 SPARSE_BACKENDS = Path(os.environ.get("H3_SOL_ATTN_ROOT",
-                                      REPO_ROOT / "techniques" / "sparse_backends"))
+                                      REPO_ROOT / "sol" / "optimizations" / "sparse_backends"))
 
 # Artefacts a run produces, and the recorded inputs a benchmark needs. Kept beside the variant
 # rather than in the repository's `runs/`, which `scripts/collect_run.py` owns.

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sol-engine"
 version = "0.1.0.dev0"
-description = "Experimental side-effect-free control plane for Sol-Engine"
+description = "Composable video-generation optimization engine with Diffusers semantics and high-performance backends"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -17,10 +17,12 @@ runtime = ["torch>=2.6"]
 test = []
 
 [project.scripts]
-sol-engine = "sol_engine.cli:main"
+sol = "sol.cli:main"
+sol-engine = "sol.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["sol_engine*", "techniques*"]
+include = ["sol*"]
 
 [tool.setuptools.package-data]
-sol_engine = ["catalog.toml"]
+sol = ["catalog.toml"]
+"sol.plugins.ltx23" = ["*.toml", "presets/*.toml", "launch/*.toml"]

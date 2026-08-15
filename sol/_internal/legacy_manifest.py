@@ -1,0 +1,296 @@
+"""Config-manifest validation and model-agnostic dry-run helpers."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from sol import _toml
+
+
+def load_toml(path: Path) -> dict[str, Any]:
+    return _toml.load(path)
+
+
+def manifest_id(data: dict[str, Any]) -> str:
+    raw = data.get("id")
+    if isinstance(raw, dict):
+        value = raw.get("name") or raw.get("config") or raw.get("id")
+        if value:
+            return str(value)
+    if raw is not None:
+        return str(raw)
+    return ""
+
+
+def manifest_dimension(data: dict[str, Any]) -> str:
+    raw = data.get("id")
+    if isinstance(raw, dict):
+        return str(raw.get("dimension", ""))
+    return str(data.get("dimension", ""))
+
+
+def manifest_family(data: dict[str, Any]) -> str:
+    raw = data.get("id")
+    if isinstance(raw, dict):
+        return str(raw.get("family", ""))
+    return str(data.get("family", ""))
+
+
+def is_efficiency_config(data: dict[str, Any]) -> bool:
+    return isinstance(data.get("id"), dict) or "requirements" in data or "efficiency" in data
+
+
+def load_model_profile(data: dict[str, Any], repo_root: Path) -> dict[str, Any]:
+    """Compatibility helper used by the launcher when merging profile defaults."""
+
+    profile_id = str(data.get("model_profile") or "").strip()
+    if not profile_id:
+        return {}
+    from sol.catalog import builtin_catalog
+
+    try:
+        profile = str(builtin_catalog().require("models", profile_id).get("profile", ""))
+    except Exception as exc:
+        raise ValueError(f"unknown model_profile {profile_id!r}: {exc}") from exc
+    profile_path = repo_root / profile
+    if not profile_path.exists():
+        raise ValueError(f"model_profile {profile_id!r} not found at {profile_path}")
+    return load_toml(profile_path)
+
+
+def model_spec_key(data: dict[str, Any], repo_root: Path) -> str:
+    """Return a descriptive model label; never construct capabilities from it."""
+
+    profile = load_model_profile(data, repo_root)
+    return str(profile.get("spec") or data.get("model_profile") or "")
+
+
+def schema_errors(data: dict[str, Any], repo_root: Path) -> list[str]:
+    if not is_efficiency_config(data):
+        return []
+
+    errors: list[str] = []
+    raw_id = data.get("id")
+    if not isinstance(raw_id, dict):
+        errors.append("[id] table is required for efficiency config")
+    else:
+        for key in ("name", "dimension", "family"):
+            if not str(raw_id.get(key, "")).strip():
+                errors.append(f"[id].{key} is required")
+
+    refs = data.get("references", {})
+    ext = refs.get("external", {}) if isinstance(refs, dict) else {}
+    loc = refs.get("local", {}) if isinstance(refs, dict) else {}
+    for key in ("paper", "code", "notes"):
+        if not str(ext.get(key, "")).strip():
+            errors.append(f"[references.external].{key} is required")
+    # generic_impl is required. model_adapter_example / runtime_example are
+    # OPTIONAL: they used to point into the engine submodule that was removed;
+    # when present they must point at an existing file in this repo.
+    for key in ("generic_impl", "model_adapter_example", "runtime_example"):
+        value = str(loc.get(key, "")).strip()
+        if not value:
+            if key == "generic_impl":
+                errors.append(f"[references.local].{key} is required")
+            continue
+        path = repo_root / value
+        if not path.exists():
+            errors.append(f"[references.local].{key} does not exist: {value}")
+
+    req = data.get("requirements", {})
+    caps = req.get("capabilities") if isinstance(req, dict) else None
+    if not isinstance(caps, list) or not caps:
+        errors.append("[requirements].capabilities must be a non-empty list")
+
+    eff = data.get("efficiency", {})
+    if not isinstance(eff, dict) or not str(eff.get("name", "")).strip():
+        errors.append("[efficiency].name is required")
+    if not isinstance(eff, dict) or eff.get("kind") not in {
+        "runtime_technique",
+        "technique",
+        "build_transform",
+        "transform",
+    }:
+        errors.append(
+            "[efficiency].kind must be runtime_technique, technique, build_transform, or transform"
+        )
+
+    ver = data.get("verification", {})
+    if not isinstance(ver, dict) or not str(ver.get("mode", "")).strip():
+        errors.append("[verification].mode is required")
+    if not isinstance(ver, dict) or not str(ver.get("quality_gate", "")).strip():
+        errors.append("[verification].quality_gate is required")
+
+    return errors
+
+
+def _capability_lookup():
+    from sol.optimizations.technique import Capability
+
+    lookup = {cap.value: cap for cap in Capability}
+    lookup.update({cap.name.lower(): cap for cap in Capability})
+    lookup.update(
+        {
+            "blocks": Capability.BLOCKS,
+            "transformer_blocks": Capability.BLOCKS,
+            "attention_backend_switch": Capability.HAS_ATTENTION_BACKEND_SWITCH,
+            "ffn_linear_modules": Capability.HAS_FFN_LINEAR_MODULES,
+            "token_sequence_axis": Capability.HAS_TOKEN_SEQUENCE_AXIS,
+            "spatiotemporal_token_layout": Capability.HAS_SPATIOTEMPORAL_TOKEN_LAYOUT,
+            "token_gather_scatter": Capability.SUPPORTS_TOKEN_GATHER_SCATTER,
+            "step_cache": Capability.SUPPORTS_STEP_CACHE,
+            "cuda_graph_probe": Capability.SUPPORTS_CUDA_GRAPH_PROBE,
+            "nvfp4_linear": Capability.SUPPORTS_NVFP4_LINEAR,
+            "kernel_fusion": Capability.SUPPORTS_KERNEL_FUSION,
+        }
+    )
+    return lookup
+
+
+def resolve_capabilities(names: list[str]):
+    lookup = _capability_lookup()
+    resolved = []
+    unknown = []
+    for name in names:
+        key = str(name).strip()
+        cap = lookup.get(key) or lookup.get(key.lower())
+        if cap is None:
+            unknown.append(key)
+        else:
+            resolved.append(cap)
+    if unknown:
+        raise ValueError(f"unknown capabilities: {unknown}")
+    return frozenset(resolved)
+
+
+def _profile_model_spec(data: dict[str, Any], repo_root: Path):
+    """Resolve a model-owned adapter; never copy recipe requirements into it."""
+
+    from sol.catalog import builtin_catalog
+
+    profile_id = str(data.get("model_profile") or "").strip()
+    if not profile_id:
+        raise ValueError(
+            "efficiency config requires model_profile so capabilities can be "
+            "resolved from model-owned seam evidence"
+        )
+    entry = builtin_catalog().require("models", profile_id)
+    profile = str(entry.get("profile", ""))
+    if not profile:
+        raise ValueError(f"model catalog entry {profile_id!r} has no profile")
+    adapter_type = entry.load_provider()
+    adapter = adapter_type(profile=profile, repo_root=repo_root)
+    if adapter.id != profile_id:
+        raise ValueError(
+            f"model catalog id {profile_id!r} does not match profile id {adapter.id!r}"
+        )
+    return adapter.to_model_spec()
+
+
+def _build_efficiency_item(data: dict[str, Any]):
+    from sol.catalog import builtin_catalog
+
+    eff = data.get("efficiency", {})
+    kind = eff.get("kind")
+    name = str(eff.get("name", ""))
+    params = dict(eff.get("params", {}) or {})
+    expected = {
+        "build_transform": "build_transform",
+        "transform": "build_transform",
+        "runtime_technique": "runtime_technique",
+        "technique": "runtime_technique",
+    }.get(str(kind))
+    if expected is None:
+        raise ValueError(f"unsupported efficiency kind: {kind!r}")
+    entry = builtin_catalog().require("optimizations", name)
+    actual = str(entry.get("kind", ""))
+    if actual != expected:
+        raise ValueError(
+            f"optimization {name!r} is {actual!r}, not requested kind {expected!r}"
+        )
+    return entry.load_provider()(**params)
+
+
+def _generic_impl_has_model_path(data: dict[str, Any], repo_root: Path) -> bool:
+    refs = data.get("references", {})
+    loc = refs.get("local", {}) if isinstance(refs, dict) else {}
+    generic = str(loc.get("generic_impl", "")).strip()
+    if not generic:
+        return False
+    path = repo_root / generic
+    if not path.exists() or not path.is_file():
+        return False
+    text = path.read_text(errors="ignore").lower()
+    forbidden = (
+        "runtime/models/dits/cosmos3video.py",
+        "python/sglang/multimodal_gen/runtime/models/dits/cosmos3video.py",
+    )
+    return any(token in text for token in forbidden)
+
+
+def dry_run_manifest(
+    data: dict[str, Any],
+    repo_root: Path,
+    *,
+    stage: str = "stage2",
+) -> dict[str, Any] | None:
+    """Validate schema, capabilities, adapter discovery, and transform preview."""
+
+    if not is_efficiency_config(data):
+        return None
+
+    errors = schema_errors(data, repo_root)
+    if errors:
+        raise ValueError("config schema errors:\n  - " + "\n  - ".join(errors))
+
+    from sol.optimizations import compose
+    from sol.optimizations.transform import ModelTransform
+
+    req = data.get("requirements", {})
+    required = resolve_capabilities([str(x) for x in req.get("capabilities", [])])
+    item = _build_efficiency_item(data)
+    item_required = getattr(item, "required_capabilities", frozenset())
+    spec = _profile_model_spec(data, repo_root)
+
+    missing = spec.missing(required | item_required)
+    if missing:
+        raise ValueError(
+            f"{manifest_id(data)!r} or its provider requires capabilities "
+            f"{sorted(cap.value for cap in missing)} not provided by model {spec.name!r}"
+        )
+
+    plan = compose([item], spec)
+    env_preview: dict[str, str] = {}
+    if isinstance(item, ModelTransform):
+        plan.apply_transforms(None, stage=stage, env=env_preview)
+
+    if _generic_impl_has_model_path(data, repo_root):
+        raise ValueError("generic implementation hard-codes the Cosmos3 runtime module path")
+
+    return {
+        "config_id": manifest_id(data),
+        "dimension": manifest_dimension(data),
+        "family": manifest_family(data),
+        "model_spec": spec.name,
+        "model_spec_source": spec.extra.get("source"),
+        "required_capabilities": sorted(cap.value for cap in required),
+        "provider_required_capabilities": sorted(
+            cap.value for cap in item_required
+        ),
+        "effective_capabilities": sorted(cap.value for cap in spec.capabilities),
+        "compose": {
+            "plan": repr(plan),
+            "transforms": [t.name for t in plan.transforms],
+            "techniques": [t.name for t in plan.techniques],
+        },
+        "env_preview": env_preview,
+        "runtime_config": data.get("efficiency", {}),
+    }
+
+
+def write_dry_run(path: Path, payload: dict[str, Any] | None) -> None:
+    if payload is None:
+        return
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")

@@ -24,8 +24,8 @@ REPO_FOR_IMPORT = Path(__file__).resolve().parents[1]
 if str(REPO_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(REPO_FOR_IMPORT))
 
-from sol_engine import _toml  # noqa: E402
-from techniques.config_manifest import (  # noqa: E402
+from sol import _toml  # noqa: E402
+from sol._internal.legacy_manifest import (  # noqa: E402
     dry_run_manifest,
     load_model_profile as load_efficiency_model_profile,
     manifest_id,

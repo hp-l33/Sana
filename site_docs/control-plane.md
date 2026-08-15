@@ -1,69 +1,86 @@
-# Experimental control plane
+# Engine API
 
-The control plane is a dependency-light layer above the existing model runtimes and
-launcher. It validates what will run; it does not reimplement GPU inference.
+`Engine` is the only public facade. It covers discovery, composition, validation,
+inspection, and execution.
 
-## Three boundaries
-
-1. `sol_engine/catalog.toml` maps short model and optimization IDs to canonical
-   `module:qualname` references. It contains metadata, never live Python objects.
-2. `models/<id>.toml` owns capability evidence. Only seams marked `wired` or `verified`
-   become capabilities; a recipe cannot grant capabilities to its own model.
-3. `recipes/<model>/<preset>.toml` pins the selected providers, their parameters, stages,
-   and the existing launch config that executes the verified runtime.
-
-Listing metadata is side-effect free:
+## Discovery
 
 ```bash
-python3 -m sol_engine models
-python3 -m sol_engine optimizations
+sol models
+sol models --json
+sol presets
+sol optimizations
 ```
 
-Provider modules are imported only after a recipe selects them:
+Catalog listing is lazy. `sol models` shows release status, semantic references,
+executable backends, and presets without importing model plugins. A `profile_only`
+entry is migration evidence, not a runnable release. A reference is never listed as an
+execution backend.
+
+## Inspect a released preset
 
 ```bash
-python3 -m sol_engine plan recipes/ltx23/fullopt.toml --json
+sol inspect ltx23:fullopt
+sol inspect ltx23:fullopt --json
 ```
 
-The resolved plan records the canonical provider and concrete implementation for every
-component, model capability provenance, transform/technique order, environment preview,
-adapter-compiled runtime environment, and a deterministic SHA-256 fingerprint. The
-LTX-2.3 adapter emits explicit OFF values for unselected components, so editing a recipe
-changes the delegated run instead of merely changing its metadata.
+The plan records:
 
-The generic profile adapter is validation-only. `run` fails closed until a model adapter
-implements `render_runtime_env`; a syntactically valid recipe is not treated as executable
-when the target runtime cannot consume its settings.
+- model profile and provider;
+- selected backend;
+- model capabilities and their profile provenance;
+- canonical optimization providers and concrete implementations;
+- composition order and backend-compiled environment;
+- a deterministic plan fingerprint.
 
-## Running a release recipe
+Resolution fails before launch if a capability is missing, two optimizations conflict,
+a stage is wrong, an option cannot be honored, or a launch manifest is inconsistent.
+
+## Inspect the legal customization domain
 
 ```bash
-python3 -m sol_engine run recipes/ltx23/fullopt.toml --print
-python3 -m sol_engine run recipes/ltx23/fullopt.toml
+sol space ltx23 --backend sglang
 ```
 
-Both commands resolve the recipe first. The second command then delegates to
-`scripts/run.py`, so run bundles, provenance, local execution, and artifacts still use
-the existing implementation. The launcher bundle records both the immutable plan
-fingerprint and an execution fingerprint that also covers user `--set` overrides.
+The JSON is derived from model capabilities, backend integrations, and optimization
+parameter schemas. It is the supported input domain for both an advanced user and a
+tuning agent.
 
-## Extension rule
+## Compose
 
-An adapter or optimization should be independently importable and should publish a
-canonical provider reference plus metadata. Do not add imports to `techniques/__init__.py`
-or mutate a central Python dictionary. Catalog merges reject duplicate IDs instead of
-silently overwriting them.
+```python
+from sol import Engine
 
-An adaptation package does not have to edit the built-in release catalog. It can ship a
-scoped catalog and opt into it explicitly:
+engine = Engine()
+candidate = (
+    engine.optimize("ltx23", backend="sglang")
+    .use("step_cache", skip="16-28")
+    .preset(name="cache-only")
+)
+plan = engine.inspect(candidate)
+```
+
+Callers select optimization options. The model plugin owns installation stages and
+the backend owns translation to runtime settings.
+
+## Run
 
 ```bash
-python3 -m sol_engine --catalog path/to/my-catalog.toml models
-python3 -m sol_engine --catalog path/to/my-catalog.toml plan path/to/recipe.toml
+sol run ltx23:fullopt --dry-run
+sol run ltx23:fullopt --set SGLANG_RUNTIME_ROOT=/path/to/sglang-runtime
 ```
 
-There is no precedence rule: two catalogs claiming the same ID are an error. This keeps
-extension ownership local and makes the selected namespace visible in the command.
+Dry-run is in-memory unless `--persist PATH` is explicitly supplied. A real run adds
+the immutable plan fingerprint and an execution fingerprint covering user overrides,
+then delegates to the existing launcher.
 
-For advanced Python composition, import provider classes directly and pass objects to
-`techniques.compose()`. The string catalog exists only at the serialization/CLI boundary.
+## Scoped extensions
+
+An external package may provide a scoped catalog:
+
+```bash
+sol --catalog /path/to/extension.toml models
+```
+
+Catalogs do not have a precedence order. Claiming an existing ID is an error. This
+makes the active namespace explicit and prevents silent provider replacement.

@@ -1,88 +1,30 @@
-# `models/` — runtime model profiles and baseline contracts
+# Models
 
-This directory stores two related model artifacts:
+`models/` contains upstream/runtime snapshots, launch shims, and historical profiles.
+It is data consumed by model plugins and legacy experiments; it is not the public model
+integration API.
 
-- flat model profiles such as `models/hunyuan_diffusers.toml`, used by existing
-  launch and evaluation scripts;
-- directory-style model contracts such as `models/hunyuan_diffusers/model.toml`,
-  used to materialize experiment-local baseline copies.
+New integration ownership belongs under `sol/plugins/<model>/`. That plugin points to
+the relevant runtime material here or to an externally pinned backend checkout. Sol does
+not copy an entire model architecture into its core package.
 
-The actual runtime adapter code lives under `models/<model_uid>/baseline/` and
-`models/<model_uid>/optimized/`; reusable algorithm helpers live in
-`techniques/`. (Both moved in the 2026-07-17 `efficiency/` -> `techniques/`
-reorg; there is no longer a top-level `runtime/` or `efficiency/` directory.)
+## Two states
 
-## A model profile contains
+- A **profile-only** model has historical workload and seam evidence but no released
+  backend/preset. It can be migrated, but `Engine.space()` and execution fail clearly.
+- A **released** model has a cohesive plugin, at least one execution backend, a
+  model-owned preset, and a fail-closed acceptance contract.
 
-- official config and runtime env
-- baseline timing/quality metadata
-- run script and submodule commit
-- human seam/status notes for what the current runtime consumes
+Use `sol models` to see the distinction. Do not infer release status from the presence
+of a directory or an old optimized script.
 
-Config manifests declare their required capabilities. During dry-run,
-`techniques.config_manifest` builds a minimal manifest-derived `ModelSpec`
-and `compose()` checks the selected technique/transform against that contract.
-Because `scripts/launch_config.py` imports `techniques.config_manifest` at
-module scope, every contract's copy allowlist must include
-`techniques/config_manifest.py` — otherwise the copied worktree is created
-successfully and only fails later, on import.
+## Legacy experiment contracts
 
-Current local profiles include:
+Some `models/<id>/model.toml` files define a minimal copy closure used by
+`scripts/create_model_experiment.py`. The bridge is implemented in
+`sol/_internal/legacy_manifest.py` and remains private. New product features should not
+depend on that schema.
 
-- `hunyuan_diffusers`: HunyuanVideo diffusers baseline and kernel workflow
-  experiments.
-- `sana_video`: Sana 5B 720p193 baseline wrapper for the private
-  `yitongl/sana_video` minimal inference bundle.
-- `lingbot_video`: LingBot-Video MoE 30B-A3B two-stage T2V on 4x GB200, with
-  physically isolated CP4/FA2 baseline and cuDNN-optimized runtimes.
-- `ltx23`: LTX-2.3 22B two-stage HQ at 1088x1920/241f on a single GB200, with a
-  dense baseline and a KWL-fusion + stage-1 cache + PISA + NVFP4 + token-prune
-  optimized arm.
-- `cosmos3`: Cosmos3-Super 64B T2V at 1280x720/189f on 4x GB200, with a dense
-  baseline and a TeaCache + step-selective NVFP4 optimized arm.
-
-`ltx23` and `cosmos3` both keep their model code in the separate
-`the SGLang runtime` repo, declared `reference_only` and pinned
-by commit in `model.toml`; what lives here is the profile plus the two runnable
-arms. Each arm is an `env.sh` (the technique declaration, with every knob written
-out explicitly including the zeros) plus a shim that sources it and then the
-model's shared launch body — so the two arms can differ by technique and by
-nothing else.
-
-## Directory-Style Model Contracts
-
-A directory-style contract defines the minimal baseline runnable closure for one
-model. Creating an experiment from this contract copies only allowlisted baseline
-files into the experiment worktree:
-
-```text
-models/<model_uid>/model.toml
-  -> output/experiments/<experiment_uid>/worktree/
-```
-
-The copy scope should include baseline runtime code, the baseline config
-manifest, launch/collect/eval helper scripts, and evaluation profiles. It should
-not include generated config, historical runs, search spaces, cache methods,
-compiled artifacts, model weights, Conda environments, or Torch/Triton caches.
-
-Use `scripts/create_model_experiment.py` to create this kind of experiment:
-
-```bash
-python3 scripts/create_model_experiment.py \
-  --model hunyuan_diffusers \
-  --workflow-uid kernel_aw \
-  --experiment-uid hunyuan-kernel_aw-0001
-```
-
-For Sana Video:
-
-```bash
-python3 scripts/create_model_experiment.py \
-  --model sana_video \
-  --workflow-uid kernel_aw \
-  --experiment-uid sana-kernel_aw-0001
-```
-
-The workflow is named with its aspect prefix, but aspect-specific behavior is
-implemented inside the workflow directory rather than a separate runtime
-`aspect/` directory.
+Generated runs, search output, caches, environments, and weights must stay outside this
+tree. Reusable optimization code belongs in `sol/optimizations/`; benchmark contracts
+belong in `benchmarks/`.

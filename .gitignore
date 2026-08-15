@@ -1,7 +1,8 @@
 .cache/
 .venv/
+.humanize/
 runs/*
-!runs/README.md
+.sol/
 goals/*
 !goals/README.md
 .codex/skills/

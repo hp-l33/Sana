@@ -5,9 +5,9 @@ legacy_profile = "models/ltx23.toml"
 contract_kind = "model_baseline_minimal_copy"
 
 [baseline]
-manifest = "config/ltx23/baseline.toml"
+manifest = "experiments/ltx23/baseline.toml"
 runtime_root = "models/ltx23/baseline"
-eval_profile = "evals/profiles/official_video_t2v_ltx23.toml"
+eval_profile = "benchmarks/profiles/official_video_t2v_ltx23.toml"
 description = "LTX-2.3 official two-stage HQ baseline with every acceleration seam explicitly off. Runnable code (variant env.sh + shared launch body + run shim) is vendored under models/ltx23; the 22B runtime, weights and the .conda/ltx23 interpreter are referenced read-only by absolute path via SGLANG_RUNTIME_ROOT."
 
 [baseline.copy]
@@ -19,14 +19,15 @@ include = [
   "models/ltx23/run_ltx23_common.sh",
   "models/ltx23/prompts/**",
   "models/ltx23/baseline/**",
-  "config/ltx23/baseline.toml",
-  "config/schema.md",
-  "evals/profiles/official_video_t2v_ltx23.toml",
-  "evals/tiers.toml",
+  "experiments/ltx23/baseline.toml",
+  "experiments/schema.md",
+  "benchmarks/profiles/official_video_t2v_ltx23.toml",
+  "benchmarks/tiers.toml",
   "scripts/launch_config.py",
   "scripts/collect_run.py",
-  "search/plan_eval.py",
-  "techniques/config_manifest.py",
+  "sol/engine.py",
+  "sol/tuning.py",
+  "sol/_internal/legacy_manifest.py",
 ]
 exclude = [
   ".git/**",
@@ -35,7 +36,6 @@ exclude = [
   "runs/**",
   "output/**",
   "workflow/**",
-  "search_space/**",
 ]
 
 [[baseline.reference_only]]

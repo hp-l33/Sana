@@ -139,7 +139,7 @@ def main() -> int:
         )
         if _repo_sol not in _sys_sol.path:
             _sys_sol.path.insert(0, _repo_sol)
-        from techniques.sparse_backends.sol_attn_backend import (
+        from sol.optimizations.sparse_backends.sol_attn_backend import (
             make_mmdit_sol_attn_dispatch,
             sol_attn_begin_forward,
         )
@@ -221,7 +221,7 @@ def main() -> int:
 
     # A full warmup must not consume the measured run's dense-step schedule.
     if os.environ.get("HUNYUAN_SOL_ATTN") == "1":
-        from techniques.sparse_backends.sol_attn_backend import (
+        from sol.optimizations.sparse_backends.sol_attn_backend import (
             reset_sol_attn_state,
         )
 
@@ -256,7 +256,7 @@ def main() -> int:
     video = result.frames[0]
     sol_attn_stats = None
     if os.environ.get("HUNYUAN_SOL_ATTN") == "1":
-        from techniques.sparse_backends.sol_attn_backend import (
+        from sol.optimizations.sparse_backends.sol_attn_backend import (
             get_sol_attn_stats,
         )
 

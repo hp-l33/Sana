@@ -33,7 +33,7 @@ H3_SOL_DENSE_LAYERS = "2"
 H3_SOL_SINK_MODE   = "prefix"
 H3_VAE_BATCHED     = "1"
 H3_VAE_COMPILE     = "default"
-H3_SOL_ATTN_ROOT   = "techniques/sparse_backends"
+H3_SOL_ATTN_ROOT   = "sol/optimizations/sparse_backends"
 
 # --- interpreter -------------------------------------------------------------
 PYTHON_BIN    = "/lustre/fsw/portfolios/nvr/users/yitongl/miniconda3/envs/lingbot-fa2/bin/python"

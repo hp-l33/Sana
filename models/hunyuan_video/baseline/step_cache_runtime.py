@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """TeaCache seam for HunyuanVideo (diffusers) — the model-specific glue.
 
-This is NOT a new optimization. The algorithm is the public TeaCache controller
-already in ``efficiency/techniques/teacache.py`` (rescaled cumulative relative-L1
+This is NOT a new optimization. The algorithm is the reusable TeaCache controller
+in ``sol/optimizations/methods/teacache.py`` (rescaled cumulative relative-L1
 of a per-step signal -> reuse the cached step output while it stays under a
 threshold). This module is only the SEAM that:
 
@@ -15,13 +15,13 @@ threshold). This module is only the SEAM that:
 OFF == baseline: if no ``SGLANG_HQ_TEACACHE_*`` knob is set, ``maybe_enable()`` is
 a no-op and the pipeline stays byte-identical to the vanilla baseline.
 
-Knobs (published by search/plan_eval.py ``_RUNTIME_TECHNIQUE_ENV["teacache"]``):
+Legacy environment knobs consumed by this model seam:
   SGLANG_HQ_TEACACHE_THRESHOLD   accumulate rescaled rel-L1; reuse while < this.
                                  Presence (>0) ENABLES the seam.
   SGLANG_HQ_TEACACHE_START_STEP  always compute before this step (warm-up); default 6.
   SGLANG_HQ_TEACACHE_MAX_HITS    cap consecutive reuses (1 = never two in a row); default 1.
 
-STATUS: first cut = WHOLE-STEP output cache (efficiency ``TeaCache``, Phase.ON_STEP):
+STATUS: first cut = WHOLE-STEP output cache (``TeaCache``, Phase.ON_STEP):
 wraps the whole transformer.forward and reuses its returned output. The
 block-residual variant (``TeaCacheResidual``, replays block residuals — more
 accurate) is the planned refinement once this is GPU-validated against the
@@ -33,8 +33,7 @@ import os
 import sys
 from pathlib import Path
 
-# Make the orchestration repo's `efficiency` package importable (the generic
-# TeaCache controller lives there). repo root = runtime/<name>/../..
+# Make the repository's optimization package importable. repo root = runtime/<name>/../..
 _REPO = Path(os.environ.get("AUTOVIDEO_REPO_ROOT", str(Path(__file__).resolve().parents[3])))
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
@@ -60,9 +59,8 @@ def maybe_enable(pipe) -> dict | None:
     if threshold is None or threshold <= 0:
         return None  # disabled -> vanilla baseline, no wrapping
 
-    from techniques.registry import build_technique
-    from techniques.technique import TechniqueContext
-    from techniques.methods.teacache import teacache_relative_l1
+    from sol.optimizations.methods.teacache import TeaCache, teacache_relative_l1
+    from sol.optimizations.technique import TechniqueContext
 
     kwargs = {"threshold": threshold}
     start_step = _env_int("SGLANG_HQ_TEACACHE_START_STEP")
@@ -71,7 +69,7 @@ def maybe_enable(pipe) -> dict | None:
         kwargs["start_step"] = start_step
     if max_hits is not None:
         kwargs["max_continuous_hits"] = max_hits
-    teacache = build_technique("teacache", **kwargs)  # generic controller, reused
+    teacache = TeaCache(**kwargs)  # generic controller, reused
 
     transformer = pipe.transformer
     ctx = TechniqueContext(step=0, stage="denoise", cache_key="main", scratch={})

@@ -10,8 +10,8 @@ LTX-2.3 uses token pruning in the full optimization stack together with kernel f
 
 In this repository:
 
-- `techniques/methods/token_prune.py` — the pruning policy, model-agnostic
-- `techniques/spec.py` — the `ModelSpec` seams a model must expose for it to apply
+- `sol/optimizations/methods/token_prune.py` — the pruning policy, model-agnostic
+- `sol/optimizations/spec.py` — the `ModelSpec` seams a model must expose for it to apply
 
 The runtime that consumes them is in the SGLang runtime, not here:
 

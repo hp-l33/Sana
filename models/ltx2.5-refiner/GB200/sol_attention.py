@@ -125,7 +125,7 @@ class Stage2SolAttention:
     def begin_denoise(self) -> None:
         """Reset the per-sample schedule and in-tree backend counters."""
 
-        from techniques.sparse_backends.sol_attn_backend import reset_sol_attn_state
+        from sol.optimizations.sparse_backends.sol_attn_backend import reset_sol_attn_state
 
         self._step = -1
         self._dense_calls = 0
@@ -170,7 +170,7 @@ class Stage2SolAttention:
                 "tau; verify transformer layer ordering"
             )
 
-        from techniques.sparse_backends.sol_attn_backend import _run_sol_attn_bthd
+        from sol.optimizations.sparse_backends.sol_attn_backend import _run_sol_attn_bthd
 
         batch, tokens, hidden = q.shape
         if hidden % heads:
@@ -196,7 +196,7 @@ class Stage2SolAttention:
     def stats(self) -> dict[str, Any]:
         """Return adapter and backend counters for per-rank validation."""
 
-        from techniques.sparse_backends.sol_attn_backend import get_sol_attn_stats
+        from sol.optimizations.sparse_backends.sol_attn_backend import get_sol_attn_stats
 
         return {
             "backend": "sol",

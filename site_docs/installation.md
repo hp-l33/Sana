@@ -1,35 +1,43 @@
 # Installation
 
-## Environment
+## Engine only
+
+Python 3.9 or newer is sufficient for catalog discovery, composition, inspection, and
+control-plane tests.
 
 ```bash
-conda create -n solengine python=3.12 -y
-conda activate solengine
-
-pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
-pip install diffusers==0.37.1 transformers accelerate imageio-ffmpeg
-
 git clone -b sol-engine https://github.com/NVlabs/Sana.git
 cd Sana
-pip install ./techniques/sparse_backends
+python3 -m pip install --upgrade "pip>=24" "setuptools>=69"
+python3 -m pip install -e .
+sol doctor
 ```
 
-`techniques/sparse_backends` is the Sol-Attn kernel package. It needs PyTorch
-already installed — it does not pull one in, so it cannot override a build
-matched to your CUDA.
+The build-tool upgrade matters on systems that still ship pip 21: that version can
+misread modern `pyproject.toml` metadata and create an `UNKNOWN` package. The engine core
+has no mandatory PyTorch dependency. `pip install -e .[runtime]` installs
+the optional runtime dependency declared by this repository, but a released model may
+still require its backend checkout and model-specific packages.
 
-Sol-Attn ships CuTe kernels for sm90 (H100), sm100 (B200/GB200) and sm120
-(RTX 5090), and a Triton reference elsewhere. `benchmark.json` records which
-backend a run used.
+## Sol-Attn kernels
 
-## Weights
+Install PyTorch for the target CUDA architecture first, then install the optional kernel
+package:
 
 ```bash
-export HF_HOME=/somewhere/with/room     # 30–140 GB per model
-hf auth login
-
-hf download Wan-AI/Wan2.2-TI2V-5B-Diffusers
-hf download Wan-AI/Wan2.2-T2V-A14B-Diffusers
-hf download MiniMaxAI/MiniMax-H3
-hf download Efficient-Large-Model/SANA-Video_2B_480p_diffusers
+python3 -m pip install -e sol/optimizations/sparse_backends
 ```
+
+This prevents the kernel package from replacing a PyTorch build already matched to the
+machine. Refer to its README for supported GPU architectures and backend fallback.
+
+## Model runtimes
+
+Each released model plugin declares its execution backend. The current LTX-2.3 release
+uses an external SGLang checkout; its path is supplied as `SGLANG_RUNTIME_ROOT`. Follow
+that checkout's installation instructions, then provide explicit weight paths as shown
+in the repository's
+[Quickstart](https://github.com/NVlabs/Sana/blob/sol-engine/QUICKSTART.md).
+
+Diffusers dependencies are used for semantic references and model bring-up. A Diffusers
+reference being present does not imply that its performance path has been released.

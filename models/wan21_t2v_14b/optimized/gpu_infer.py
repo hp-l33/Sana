@@ -228,7 +228,7 @@ def main():
         )
         if _repo_sol not in _sys_sol.path:
             _sys_sol.path.insert(0, _repo_sol)
-        from techniques.sparse_backends.sol_attn_backend import (
+        from sol.optimizations.sparse_backends.sol_attn_backend import (
             make_sol_attn_dispatch, sol_attn_begin_forward, install_wan_morton_forward,
         )
         from diffusers.models.transformers import transformer_wan as _twan_sol
@@ -427,7 +427,7 @@ def main():
             {"total_s": warm_total, "denoise_s": warm_den, "decode_s": warm_dec}
         )
     if os.environ.get("WAN22_SOL_ATTN") == "1":
-        from techniques.sparse_backends.sol_attn_backend import (
+        from sol.optimizations.sparse_backends.sol_attn_backend import (
             reset_sol_attn_state,
         )
 

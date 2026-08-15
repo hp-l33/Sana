@@ -5,9 +5,9 @@ legacy_profile = "models/sana_video.toml"
 contract_kind = "model_baseline_minimal_copy"
 
 [baseline]
-manifest = "config/sana_video/baseline.toml"
+manifest = "experiments/sana_video/baseline.toml"
 runtime_root = "models/sana_video/baseline"
-eval_profile = "evals/profiles/official_video_t2v_sana_video.toml"
+eval_profile = "benchmarks/profiles/official_video_t2v_sana_video.toml"
 description = "Minimum local wrapper closure for Sana Video baseline inference."
 
 [baseline.copy]
@@ -16,18 +16,19 @@ include = [
   "models/sana_video.toml",
   "models/sana_video/**",
   "models/sana_video/baseline/**",
-  "config/sana_video/baseline.toml",
-  "config/schema.md",
-  "evals/profiles/official_video_t2v_sana_video.toml",
-  "evals/rubrics/gemini_visual_artifact_gate.md",
-  "evals/tiers.toml",
+  "experiments/sana_video/baseline.toml",
+  "experiments/schema.md",
+  "benchmarks/profiles/official_video_t2v_sana_video.toml",
+  "benchmarks/rubrics/gemini_visual_artifact_gate.md",
+  "benchmarks/tiers.toml",
   "scripts/launch_config.py",
   "scripts/collect_run.py",
-  "search/plan_eval.py",
+  "sol/engine.py",
+  "sol/tuning.py",
   "tools/vision/README.md",
   "tools/vision/lpips_judge.py",
   "tools/vision/nvidia_gemini_judge.py",
-  "techniques/config_manifest.py",
+  "sol/_internal/legacy_manifest.py",
 ]
 exclude = [
   ".git/**",
@@ -37,7 +38,6 @@ exclude = [
   "runs/**",
   "output/**",
   "workflow/**",
-  "search_space/**",
 ]
 
 [[baseline.reference_only]]

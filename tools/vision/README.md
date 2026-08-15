@@ -120,7 +120,7 @@ Successful output schema:
   chronological pairs plus worst-case pixel-drift pairs;
 - Gemini verdict JSON must be present in `quality.json` or the assessment
   verdict, not only in prose logs. Gemini receives stratified + worst-case
-  frame pairs and, when available, baseline/config/side-by-side video inputs
+  frame pairs and, when available, baseline/experiments/side-by-side video inputs
   to catch flicker, patch-level discontinuity, motion breakage, blur, ghosting,
   snow/static, and severe temporal degradation.
 

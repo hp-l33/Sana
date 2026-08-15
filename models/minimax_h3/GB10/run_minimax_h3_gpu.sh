@@ -4,7 +4,7 @@
 # Same contract as the baseline and optimized entrypoints: the config manifest sets OUT_DIR
 # and the H3_* switches, this resolves the vendored deps and launches the driver. The
 # acceleration line is entirely env-gated (see `gb10/gpu_infer.py`), so this script is
-# identical for every config in `config/minimax_h3_gb10_*.toml`.
+# identical for every config in `experiments/minimax_h3_gb10_*.toml`.
 #
 # No torchrun. One GB10 is one process; there is no context parallelism to launch into.
 set -euo pipefail
@@ -35,7 +35,7 @@ export H3_OUTPUT_DIR="$OUT_DIR"
 #   sol_attn — only `sol_attn.preprocess` is used, for the block-mean reduction. The released
 #     CuTe kernels are not: their dispatcher refuses SM121, so `sol_attn_h3.py` carries the
 #     Triton reference with the routing policy rebuilt.
-SOL_ATTN_ROOT="${H3_SOL_ATTN_ROOT:-$(cd "${HERE}/../../../techniques/sparse_backends" && pwd)}"
+SOL_ATTN_ROOT="${H3_SOL_ATTN_ROOT:-$(cd "${HERE}/../../../sol/optimizations/sparse_backends" && pwd)}"
 export H3_SOL_ATTN_ROOT="${SOL_ATTN_ROOT}"
 DIFFUSERS_SRC="${H3_DIFFUSERS_SRC:-${BASELINE}/diffusers_src/src}"
 [ -d "$DIFFUSERS_SRC" ] || DIFFUSERS_SRC="${HERE}/diffusers_src/src"

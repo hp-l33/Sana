@@ -1,0 +1,6 @@
+schema_version = 1
+name = "baseline"
+backend = "sglang"
+launch = "../launch/baseline.toml"
+preview_stage = "stage2"
+description = "Dense same-backend control for LTX-2.3 fullopt."

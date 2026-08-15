@@ -72,18 +72,17 @@ class SolAttentionTest(unittest.TestCase):
         def reset():
             self.reset_calls += 1
 
-        backend = types.ModuleType("techniques.sparse_backends.sol_attn_backend")
+        backend = types.ModuleType("sol.optimizations.sparse_backends.sol_attn_backend")
         backend._run_sol_attn_bthd = sol
         backend.reset_sol_attn_state = reset
         backend.get_sol_attn_stats = lambda: {
             "kernel_calls": len(self.sol_calls)
         }
         self.modules = {
-            "techniques": types.ModuleType("techniques"),
-            "techniques.sparse_backends": types.ModuleType(
-                "techniques.sparse_backends"
+            "sol.optimizations.sparse_backends": types.ModuleType(
+                "sol.optimizations.sparse_backends"
             ),
-            "techniques.sparse_backends.sol_attn_backend": backend,
+            "sol.optimizations.sparse_backends.sol_attn_backend": backend,
         }
 
         def dense(q, k, v, heads):

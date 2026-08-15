@@ -39,7 +39,7 @@ export PATH="$(dirname "${PYTHON_BIN}"):${PATH}"
 if [[ -d "${FFMPEG_BIN_DIR}" ]]; then
   export PATH="${FFMPEG_BIN_DIR}:${PATH}"
 fi
-export PYTHONPATH="${HERE}:${HERE}/../../../techniques/sparse_backends${PYTHONPATH:+:${PYTHONPATH}}"
+export PYTHONPATH="${HERE}:${HERE}/../../../sol/optimizations/sparse_backends${PYTHONPATH:+:${PYTHONPATH}}"
 export HF_HOME="${HF_HOME:-${H3_ROOT}/cache/huggingface}"
 export TRITON_CACHE_DIR="${TRITON_CACHE_DIR:-${H3_ROOT}/cache/triton}"
 export TORCHINDUCTOR_CACHE_DIR="${TORCHINDUCTOR_CACHE_DIR:-${H3_ROOT}/cache/torchinductor-sm120}"

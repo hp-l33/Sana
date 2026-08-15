@@ -1,7 +1,7 @@
 # Sol-Attn
 
 [Paper](https://arxiv.org/abs/2607.24027) ·
-[Code](https://github.com/NVlabs/Sana/tree/sol-engine/techniques/sparse_backends/sol_attn)
+[Code](https://github.com/NVlabs/Sana/tree/sol-engine/sol/optimizations/sparse_backends/sol_attn)
 
 Sol-Attn is a training-free sparse attention method for accelerating image and
 video generation. It performs dynamic block routing during online softmax and
@@ -50,7 +50,7 @@ in BTHD layout with head dimension 128.
 Install from the repository root:
 
 ```bash
-python -m pip install -e techniques/sparse_backends
+python -m pip install -e sol/optimizations/sparse_backends
 ```
 
 The CuTe DSL version has to match what the kernels were built against. A

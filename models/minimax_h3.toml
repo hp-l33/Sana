@@ -2,7 +2,7 @@ id = "minimax_h3"
 family = "video_t2va"
 submodule = "models/minimax_h3/GB200"
 run_script = "models/minimax_h3/GB200/run_minimax_h3_gpu.sh"
-eval_profile = "evals/profiles/official_video_t2va_minimax_h3.toml"
+eval_profile = "benchmarks/profiles/official_video_t2va_minimax_h3.toml"
 
 # MiniMax-H3 is a joint audio+video generator: one 33B dense single-stream transformer denoises a
 # single packed sequence carrying text conditioning, video latent rows and audio latent rows, with
@@ -137,9 +137,9 @@ status = "single_gpu_layerwise_offload"
 runtime_root = "models/minimax_h3/RTX5090"
 run_script = "models/minimax_h3/RTX5090/run_minimax_h3_gpu.sh"
 config = [
-  "config/minimax_h3/rtx5090_dense.toml",
-  "config/minimax_h3/rtx5090_sol.toml",
-  "config/minimax_h3/rtx5090_fullopt.toml",
+  "experiments/minimax_h3/rtx5090_dense.toml",
+  "experiments/minimax_h3/rtx5090_sol.toml",
+  "experiments/minimax_h3/rtx5090_fullopt.toml",
 ]
 hardware = "1x NVIDIA RTX 5090, 32 GiB GDDR7, SM120; 188 GiB host RAM"
 cell = "1344x768, 124 frames, 5 seconds, 50 steps, released BF16 FL2VA"
@@ -166,11 +166,11 @@ status = "measured_h100"
 runtime_root = "models/minimax_h3/H100"
 run_script = "models/minimax_h3/H100/run_minimax_h3_gpu.sh"
 config = [
-  "config/minimax_h3/h100_dense.toml",
-  "config/minimax_h3/h100_quality.toml",
-  "config/minimax_h3/h100_balanced.toml",
-  "config/minimax_h3/h100_aggressive.toml",
-  "config/minimax_h3/minimax_h3_h100_fullopt.toml",
+  "experiments/minimax_h3/h100_dense.toml",
+  "experiments/minimax_h3/h100_quality.toml",
+  "experiments/minimax_h3/h100_balanced.toml",
+  "experiments/minimax_h3/h100_aggressive.toml",
+  "experiments/minimax_h3/minimax_h3_h100_fullopt.toml",
 ]
 hardware = "4x H100-80GB (SM90)"
 cell = "1344x768, 124 frames, 5.166667 seconds, 50 steps, BF16 FL2VA"
@@ -193,11 +193,11 @@ status = "measured_a100"
 runtime_root = "models/minimax_h3/A100"
 run_script = "models/minimax_h3/A100/run_minimax_h3_gpu.sh"
 config = [
-  "config/minimax_h3/a100_dense.toml",
-  "config/minimax_h3/a100_quality.toml",
-  "config/minimax_h3/a100_balanced.toml",
-  "config/minimax_h3/a100_aggressive.toml",
-  "config/minimax_h3/minimax_h3_a100_fullopt.toml",
+  "experiments/minimax_h3/a100_dense.toml",
+  "experiments/minimax_h3/a100_quality.toml",
+  "experiments/minimax_h3/a100_balanced.toml",
+  "experiments/minimax_h3/a100_aggressive.toml",
+  "experiments/minimax_h3/minimax_h3_a100_fullopt.toml",
 ]
 hardware = "4x A100-80GB (SM80)"
 cell = "1344x768, 124 frames, 5.166667 seconds, 50 steps, BF16 FL2VA"
@@ -226,11 +226,11 @@ status = "measured_single_gpu_resident_fp8"
 runtime_root = "models/minimax_h3/GB10"
 run_script = "models/minimax_h3/GB10/run_minimax_h3_gpu.sh"
 config = [
-  "config/minimax_h3/gb10_baseline.toml",
-  "config/minimax_h3/gb10_kernel.toml",
-  "config/minimax_h3/gb10_kernel_sol.toml",
-  "config/minimax_h3/gb10_cache.toml",
-  "config/minimax_h3/gb10_fullopt.toml",
+  "experiments/minimax_h3/gb10_baseline.toml",
+  "experiments/minimax_h3/gb10_kernel.toml",
+  "experiments/minimax_h3/gb10_kernel_sol.toml",
+  "experiments/minimax_h3/gb10_cache.toml",
+  "experiments/minimax_h3/gb10_fullopt.toml",
 ]
 hardware = "1x NVIDIA GB10, 121 GiB unified LPDDR5X shared with the host, SM121"
 cell = "832x480, 124 frames, 50 steps"

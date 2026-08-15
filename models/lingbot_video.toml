@@ -7,7 +7,7 @@ family = "video_t2v"
 submodule = "models/lingbot_video/baseline"
 base_commit = "snapshot:fec75d7be5d3d67b773bc68a096ea6cd8b7c46ec6f54494d7ba94136cab9a472"
 run_script = "scripts/run_lingbot_video_gpu.sh"
-eval_profile = "evals/profiles/official_video_t2v_lingbot_video.toml"
+eval_profile = "benchmarks/profiles/official_video_t2v_lingbot_video.toml"
 
 [official_config]
 model = "robbyant/lingbot-video-moe-30b-a3b"

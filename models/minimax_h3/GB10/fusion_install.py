@@ -2,7 +2,7 @@
 
 Sibling of `optimized/fusion_install.py`. Everything here is a patch rather than a structural
 change, which is what lets one loaded model serve every configuration in
-`config/minimax_h3_gb10_*.toml` — and, more importantly, what lets the benchmark interleave
+`experiments/minimax_h3_gb10_*.toml` — and, more importantly, what lets the benchmark interleave
 configurations inside a single process. That matters: this machine's clocks drift up to 15%
 between processes, while three iterations inside one agree to 0.7%.
 
@@ -29,7 +29,7 @@ FP8_DTYPE = torch.float8_e4m3fn
 FP8_MAX = 448.0
 
 def _ensure_sol_attn_on_path() -> None:
-    """Put `techniques/sparse_backends` on `sys.path`, as the entrypoint script intends.
+    """Put `sol/optimizations/sparse_backends` on `sys.path`, as the entrypoint script intends.
 
     `H3_SOL_ATTN_ROOT` is set by `run_minimax_h3_gpu.sh`, the same variable the
     8xGB200 entrypoint uses; the fallback walks up to the repo root so the module is still
@@ -39,7 +39,7 @@ def _ensure_sol_attn_on_path() -> None:
     if not root:
         here = os.path.dirname(os.path.abspath(__file__))
         root = os.path.normpath(os.path.join(here, "..", "..", "..",
-                                             "techniques", "sparse_backends"))
+                                             "sol", "optimizations", "sparse_backends"))
     if root not in sys.path:
         sys.path.insert(0, root)
 
@@ -193,5 +193,4 @@ def patch_fused_adaln(model: nn.Module) -> int:
 
     h3.MiniMaxH3TransformerBlock.forward = forward
     return sum(1 for m in model.modules() if isinstance(m, h3.MiniMaxH3TransformerBlock))
-
 

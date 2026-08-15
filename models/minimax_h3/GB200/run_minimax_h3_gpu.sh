@@ -4,7 +4,7 @@
 # Same contract as the baseline entrypoint: the config manifest sets OUT_DIR and the H3_* switches,
 # this resolves the vendored deps and launches the driver under torchrun. The acceleration line is
 # entirely env-gated (see `optimized/gpu_infer.py`), so this script is identical for every config
-# in `config/minimax_h3_*.toml`.
+# in `experiments/minimax_h3_*.toml`.
 set -euo pipefail
 
 : "${OUT_DIR:?OUT_DIR must be set by scripts/launch_config.py}"
@@ -33,7 +33,7 @@ export H3_OUTPUT_DIR="$OUT_DIR"
 #   sol_attn — the released kernel package. It vendors its CuTe dependencies under
 #     `sol_attn._vendor.flash_attn`, a private namespace, so no separate flash-attn shim is needed.
 #   the vendored diffusers (PR #14355) plus the huggingface_hub >= 1.23 it needs.
-SOL_ATTN_ROOT="${H3_SOL_ATTN_ROOT:-$(cd "${HERE}/../../../techniques/sparse_backends" && pwd)}"
+SOL_ATTN_ROOT="${H3_SOL_ATTN_ROOT:-$(cd "${HERE}/../../../sol/optimizations/sparse_backends" && pwd)}"
 export H3_SOL_ATTN_ROOT="${SOL_ATTN_ROOT}"
 export PYTHONPATH="${H3_CUTLASS_DSL:+${H3_CUTLASS_DSL}:}${SOL_ATTN_ROOT}:${HERE}/vendor_site:${HERE}/diffusers_src/src:${PYTHONPATH:-}"
 

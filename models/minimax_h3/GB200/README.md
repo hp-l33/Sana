@@ -13,7 +13,7 @@ sequence with Ulysses-8 and keeps the complete model resident without offload.
 | 8 | 768p@5s | 27.21 | 6.88 | **3.95x** |
 
 The speedup is measured against the matching baseline runtime. The released configuration is pinned
-by [`minimax_h3_fullopt.toml`](../../../config/minimax_h3/fullopt.toml).
+by [`minimax_h3_fullopt.toml`](../../../experiments/minimax_h3/fullopt.toml).
 
 ## Full-Opt
 

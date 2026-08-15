@@ -46,7 +46,7 @@ export TRITON_CACHE_DIR=${TRITON_CACHE_DIR:-${H3_CACHE_ROOT}/triton}
 export TORCH_HOME=${TORCH_HOME:-${H3_CACHE_ROOT}/torch}
 export XDG_CACHE_HOME=${XDG_CACHE_HOME:-${H3_CACHE_ROOT}/xdg}
 export TMPDIR=${TMPDIR:-/tmp}
-export PYTHONPATH=${REPO_ROOT}:${REPO_ROOT}/techniques/sparse_backends:${H3_SGLANG_PYTHON_ROOT}${PYTHONPATH:+:${PYTHONPATH}}
+export PYTHONPATH=${REPO_ROOT}:${REPO_ROOT}/sol/optimizations/sparse_backends:${H3_SGLANG_PYTHON_ROOT}${PYTHONPATH:+:${PYTHONPATH}}
 
 mkdir -p "${OUT_DIR}" "${HF_HOME}" "${TRITON_CACHE_DIR}" "${TORCH_HOME}" "${XDG_CACHE_HOME}" "${TMPDIR}"
 
@@ -104,7 +104,7 @@ export H3_CACHE_ROOT=${inside_cache}
 export H3_PROMPT_FILE=${inside_prompt}
 export H3_MODEL_PATH=${inside_model}
 export OUT_DIR=${inside_output}
-export PYTHONPATH=${inside_repo}:${inside_repo}/techniques/sparse_backends:${H3_SGLANG_PYTHON_ROOT}
+export PYTHONPATH=${inside_repo}:${inside_repo}/sol/optimizations/sparse_backends:${H3_SGLANG_PYTHON_ROOT}
 export HF_HOME=${inside_cache}/huggingface
 export HUGGINGFACE_HUB_CACHE=${HF_HOME}/hub
 export TRITON_CACHE_DIR=${inside_cache}/triton

@@ -10,8 +10,8 @@ LTX-2.3 uses PISA-style sparse video self-attention in selected stage-2 refineme
 
 In this repository:
 
-- `techniques/transforms/sparse_attention.py` — the declaration and conflict-checked composition
-- `techniques/sparse_backends/sol_attn/` — the Sol-Attn CuTe kernels (sm90/sm100/sm120) and a Triton reference
+- `sol/optimizations/transforms/sparse_attention.py` — the declaration and conflict-checked composition
+- `sol/optimizations/sparse_backends/sol_attn/` — the Sol-Attn CuTe kernels (sm90/sm100/sm120) and a Triton reference
 
 The SGLang backends these select are in the SGLang runtime, not here:
 

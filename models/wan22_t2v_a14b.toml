@@ -6,7 +6,7 @@ spec = "Wan2.2-T2V-A14B"
 display_name = "Wan2.2-T2V-A14B 720p81 text-to-video baseline (MoE)"
 submodule = "models/wan22_t2v_a14b/baseline"
 run_script = "scripts/run_wan22_t2v_a14b_gpu.sh"
-eval_profile = "evals/profiles/official_video_t2v_wan22_t2v_a14b.toml"
+eval_profile = "benchmarks/profiles/official_video_t2v_wan22_t2v_a14b.toml"
 
 [official_config]
 model = "wan22_t2v_a14b_diffusers"

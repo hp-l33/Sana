@@ -279,7 +279,7 @@ def _verify_video(path: Path) -> dict[str, Any]:
 
 
 def _actual_sol_backend() -> str:
-    from techniques.sparse_backends.sol_attn_backend import _load_sol_attn
+    from sol.optimizations.sparse_backends.sol_attn_backend import _load_sol_attn
 
     _load_sol_attn()
     from sol_attn import get_sol_attn_backend

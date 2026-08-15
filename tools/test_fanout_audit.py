@@ -69,7 +69,7 @@ def make_run(root: Path, *, pending: bool = False) -> Path:
         "| tier | status |\n|---|---|\n| low | " + status + " |\n",
     )
     write(
-        integration / "config/c1.toml",
+        integration / "experiments/c1.toml",
         'id = "c1"\n[composition]\nsource_runs = ["../step_cache/runs/source"]\n',
     )
     write_json(
